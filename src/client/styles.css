@@ -23,6 +23,7 @@ body {
   line-height: 1.45;
   padding-bottom: env(safe-area-inset-bottom);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; /* backstop: never allow horizontal scroll */
 }
 
 /* ---- Layout (mobile-first single column) ---- */
@@ -62,8 +63,11 @@ main {
   font-size: 24px; font-weight: 800;
   flex-shrink: 0;
 }
-.brand h1 { margin: 0; font-size: 18px; letter-spacing: 0.3px; }
-.tagline { margin: 0; font-size: 11px; color: var(--muted); }
+.brand > div { min-width: 0; }
+.brand h1 { margin: 0; font-size: 18px; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tagline { margin: 0; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-right { flex-shrink: 0; }
+.install-btn, .live-pill { flex-shrink: 0; }
 
 .bar-right { display: flex; align-items: center; gap: 10px; }
 .install-btn {
@@ -120,6 +124,7 @@ main {
   margin: 6px 0 2px;
   font-variant-numeric: tabular-nums;
   transition: color 0.25s;
+  overflow-wrap: anywhere;
 }
 .price-main.flash-up { color: var(--green); }
 .price-main.flash-down { color: var(--red); }
@@ -130,14 +135,18 @@ main {
 /* ---- Summary ---- */
 .balance-grid {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px; align-items: end;
+  grid-template-columns: 1fr; /* mobile-first: stack total and P/L */
+  gap: 12px;
   margin-bottom: 16px;
 }
-.big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.balance-pl { text-align: right; }
-.pl-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.pl-pct { font-size: 13px; font-variant-numeric: tabular-nums; }
+.balance-main, .balance-pl { min-width: 0; }
+.big {
+  font-size: 30px; font-weight: 700;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.balance-pl { text-align: left; }
+.pl-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pl-pct { font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .balance-pl[data-state="up"] .pl-value, .balance-pl[data-state="up"] .pl-pct { color: var(--green); }
 .balance-pl[data-state="down"] .pl-value, .balance-pl[data-state="down"] .pl-pct { color: var(--red); }
 
@@ -211,17 +220,21 @@ main {
 
 /* ---- Transactions ---- */
 .tx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+/* Mobile-first: content stacks (main over value), delete pinned to the right. */
 .tx-item {
-  display: grid; grid-template-columns: 1fr auto auto;
-  align-items: center; gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px; row-gap: 4px;
+  align-items: start;
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 14px;
 }
-.tx-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.tx-btc { font-weight: 700; font-variant-numeric: tabular-nums; }
-.tx-sub { font-size: 12px; color: var(--muted); }
-.tx-value { text-align: right; font-variant-numeric: tabular-nums; }
-.tx-value .v { font-weight: 600; }
+.tx-main { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tx-value { grid-column: 1; grid-row: 2; text-align: left; min-width: 0; font-variant-numeric: tabular-nums; }
+.tx-del { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.tx-btc { font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tx-sub { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.tx-value .v { font-weight: 600; overflow-wrap: anywhere; }
 .tx-value .pl { font-size: 12px; }
 .tx-value .pl.up { color: var(--green); }
 .tx-value .pl.down { color: var(--red); }
@@ -234,6 +247,23 @@ main {
 
 .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 10px 0; margin: 0; }
 .disclaimer { color: var(--muted); font-size: 11px; text-align: center; line-height: 1.5; margin: 16px 8px 0; }
+
+/* ---- Roomier phones / up: restore side-by-side rows ---- */
+@media (min-width: 480px) {
+  .balance-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    align-items: end;
+  }
+  .balance-pl { text-align: right; }
+
+  .tx-item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
+    align-items: center;
+  }
+  .tx-main { grid-column: 1; grid-row: 1; }
+  .tx-value { grid-column: 2; grid-row: 1; text-align: right; }
+  .tx-del { grid-column: 3; grid-row: 1; }
+}
 
 /* ---- Responsive: two-column dashboard on tablets / desktop ---- */
 @media (min-width: 720px) {
