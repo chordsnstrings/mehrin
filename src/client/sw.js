@@ -1,20 +1,22 @@
-/* Mehrin service worker — offline-capable app shell.
- * Network calls to Binance are always live (never cached). */
+/* Mehrin service worker — offline app shell.
+ * API and SSE traffic always go to the network (never cached). */
 
-const CACHE = 'mehrin-v1';
+const CACHE = 'mehrin-v2';
 const SHELL = [
-  './',
-  './index.html',
-  './css/styles.css',
-  './js/app.js',
-  './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/main.js',
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(SHELL))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -32,10 +34,18 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Never cache Binance API / websocket traffic — always go to network.
-  if (url.hostname.endsWith('binance.com')) return;
+  // Never cache the API or the live price stream.
+  if (url.pathname.startsWith('/api/')) return;
 
-  // App shell: cache-first, fall back to network and update cache.
+  // Navigations: network-first, fall back to cached app shell when offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Static assets: cache-first, then network (and refresh the cache).
   event.respondWith(
     caches.match(request).then((cached) => {
       const network = fetch(request)

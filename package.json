@@ -1,0 +1,36 @@
+{
+  "name": "mehrin",
+  "version": "1.0.0",
+  "description": "PWA to track AED → USDT → BTC purchases with live Binance prices and full wallet balance.",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:client": "node scripts/build-client.mjs",
+    "copy:assets": "node scripts/copy-assets.mjs",
+    "build": "npm run clean && npm run build:server && npm run build:client && npm run copy:assets",
+    "start": "node dist/server/index.js",
+    "typecheck": "tsc --noEmit",
+    "dev:server": "tsx watch src/server/index.ts",
+    "dev:client": "node scripts/build-client.mjs --watch",
+    "dev": "npm run build:client && npm run copy:assets && tsx watch src/server/index.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.17.10",
+    "@types/pg": "^8.11.10",
+    "@types/ws": "^8.5.13",
+    "esbuild": "^0.24.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0e11" />
+  <meta name="description" content="Track your AED → USDT → BTC purchases with live Binance prices and full wallet balance." />
+  <title>Mehrin · BTC Wallet Tracker</title>
+
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mehrin" />
+
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="app-bar">
+    <div class="brand">
+      <span class="brand-mark">₿</span>
+      <div>
+        <h1>Mehrin</h1>
+        <p class="tagline">BTC Wallet Tracker</p>
+      </div>
+    </div>
+    <div class="bar-right">
+      <button type="button" class="install-btn" id="installBtn" hidden>Install</button>
+      <div class="live-pill" id="livePill" data-state="loading">
+        <span class="dot"></span>
+        <span id="liveLabel">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <!-- LIVE PRICE -->
+      <section class="card price-card">
+        <div class="price-head">
+          <span class="muted">BTC / USDT · live</span>
+          <span class="chg" id="priceChange">—</span>
+        </div>
+        <div class="price-main" id="livePrice">—</div>
+        <div class="muted small" id="priceUpdated">Waiting for first tick…</div>
+      </section>
+
+      <!-- WALLET SUMMARY -->
+      <section class="card summary-card">
+        <h2 class="card-title">Wallet balance</h2>
+        <div class="balance-grid">
+          <div class="balance-main">
+            <div class="muted small">Total value</div>
+            <div class="big" id="walletUsdt">$0.00</div>
+            <div class="muted small" id="walletAed">AED 0.00</div>
+          </div>
+          <div class="balance-pl" id="plBox" data-state="flat">
+            <div class="muted small">Profit / Loss</div>
+            <div class="pl-value" id="plValue">$0.00</div>
+            <div class="pl-pct" id="plPct">0.00%</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="muted small">BTC held</span>
+            <strong id="btcHeld">0.00000000</strong>
+          </div>
+          <div class="stat">
+            <span class="muted small">Invested (USDT)</span>
+            <strong id="investedUsdt">$0.00</strong>
+          </div>
+          <div class="stat">
+            <span class="muted small">Avg. buy price</span>
+            <strong id="avgPrice">—</strong>
+          </div>
+          <div class="stat">
+            <span class="muted small">Invested (AED)</span>
+            <strong id="investedAed">AED 0.00</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADD PURCHASE -->
+      <section class="card">
+        <h2 class="card-title">Add a purchase</h2>
+        <form id="buyForm" class="form" autocomplete="off">
+          <label class="field">
+            <span>AED invested</span>
+            <div class="input-wrap">
+              <span class="prefix">AED</span>
+              <input type="number" id="aed" inputmode="decimal" step="any" min="0" placeholder="1000" required />
+            </div>
+          </label>
+
+          <label class="field">
+            <span>AED → USD rate</span>
+            <div class="input-wrap">
+              <input type="number" id="rate" inputmode="decimal" step="any" min="0.0001" value="3.6725" required />
+              <span class="suffix">AED/USD</span>
+            </div>
+            <small class="hint">AED is pegged ≈ 3.6725. USDT ≈ 1 USD.</small>
+          </label>
+
+          <label class="field">
+            <span>Trading fee</span>
+            <div class="input-wrap">
+              <input type="number" id="fee" inputmode="decimal" step="any" min="0" value="0.1" required />
+              <span class="suffix">%</span>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>BTC buy price</span>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" id="buyPrice" inputmode="decimal" step="any" min="0" placeholder="e.g. 64250" required />
+              <button type="button" class="mini-btn" id="useLive" title="Use live price">live</button>
+            </div>
+          </label>
+
+          <div class="preview" id="preview" hidden>
+            <div><span class="muted small">USDT received</span><strong id="pvUsdt">—</strong></div>
+            <div><span class="muted small">BTC bought</span><strong id="pvBtc">—</strong></div>
+          </div>
+
+          <button type="submit" class="primary-btn" id="submitBtn">Add to wallet</button>
+        </form>
+      </section>
+
+      <!-- TRANSACTIONS -->
+      <section class="card tx-card">
+        <div class="card-title-row">
+          <h2 class="card-title">Purchases</h2>
+          <button type="button" class="ghost-btn" id="clearAll" hidden>Clear all</button>
+        </div>
+        <ul class="tx-list" id="txList"></ul>
+        <p class="empty" id="txEmpty">No purchases yet. Add one above to start tracking.</p>
+      </section>
+    </div>
+
+    <p class="disclaimer">
+      Prices stream live from Binance via this app's server. This tool is for personal
+      tracking only — it does not place trades or connect to your exchange account.
+    </p>
+  </main>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

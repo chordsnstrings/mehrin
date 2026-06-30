@@ -1,0 +1,36 @@
+# DigitalOcean App Platform spec for Mehrin.
+# Create the app with: doctl apps create --spec .do/app.yaml
+# (or import the repo in the DO dashboard, which auto-detects this file).
+name: mehrin
+region: ams # pick a region where Binance is reachable (avoid US)
+services:
+  - name: web
+    github:
+      repo: chordsnstrings/mehrin
+      branch: main
+      deploy_on_push: true
+    environment_slug: node-js
+    build_command: npm run build
+    run_command: npm start
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    http_port: 8080
+    health_check:
+      http_path: /api/health
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: PRICE_SYMBOL
+        scope: RUN_TIME
+        value: BTCUSDT
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false # dev database; switch to true for a managed cluster
