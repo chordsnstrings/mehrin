@@ -1,8 +1,8 @@
 /* Mehrin — BTC Wallet Tracker (client)
- * Talks to the app's own API for purchases (Postgres-backed) and consumes a
- * server-sent live BTC/USDT price stream. */
+ * Tracks Binance P2P purchases: AED submitted → USDT received, then BTC bought
+ * at a price. The BTC is valued live and shown as the wallet USDT balance. */
 
-import { aggregate, btcBought, usdtReceived, isValidInput } from '../shared/calc';
+import { aggregate, btcOf, costUsdt, blendedRate, isValidInput } from '../shared/calc';
 import type { Purchase, PurchaseInput, PriceTick } from '../shared/types';
 
 // ---- State ----
@@ -10,8 +10,6 @@ let transactions: Purchase[] = [];
 let livePrice: number | null = null;
 let prevPrice: number | null = null;
 let change24h: number | null = null;
-
-const REMEMBER_KEY = 'mehrin.lastInputs.v1';
 
 // ---- Element helpers ----
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T =>
@@ -22,12 +20,13 @@ const el = {
   livePrice: $('livePrice'), priceChange: $('priceChange'), priceUpdated: $('priceUpdated'),
   walletUsdt: $('walletUsdt'), walletAed: $('walletAed'),
   plBox: $('plBox'), plValue: $('plValue'), plPct: $('plPct'),
-  btcHeld: $('btcHeld'), investedUsdt: $('investedUsdt'),
-  avgPrice: $('avgPrice'), investedAed: $('investedAed'),
+  btcHeld: $('btcHeld'), usdtReceivedTotal: $('usdtReceivedTotal'),
+  avgPrice: $('avgPrice'), aedSubmittedTotal: $('aedSubmittedTotal'),
   form: $<HTMLFormElement>('buyForm'),
-  aed: $<HTMLInputElement>('aed'), rate: $<HTMLInputElement>('rate'),
-  fee: $<HTMLInputElement>('fee'), buyPrice: $<HTMLInputElement>('buyPrice'),
-  useLive: $('useLive'), preview: $('preview'), pvUsdt: $('pvUsdt'), pvBtc: $('pvBtc'),
+  aedSubmitted: $<HTMLInputElement>('aedSubmitted'), usdtReceived: $<HTMLInputElement>('usdtReceived'),
+  btcAmount: $<HTMLInputElement>('btcAmount'), buyPrice: $<HTMLInputElement>('buyPrice'),
+  useLive: $('useLive'), calcBtc: $('calcBtc'),
+  preview: $('preview'), pvRate: $('pvRate'), pvCost: $('pvCost'),
   txList: $('txList'), txEmpty: $('txEmpty'), clearAll: $('clearAll'),
   submitBtn: $<HTMLButtonElement>('submitBtn'), installBtn: $<HTMLButtonElement>('installBtn'),
 };
@@ -44,10 +43,7 @@ const signed = (n: number, f: (x: number) => string) => (n >= 0 ? '+' : '−') +
 
 // ---- API ----
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+  const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...init });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
@@ -66,22 +62,24 @@ async function loadTransactions(): Promise<void> {
 function render(): void {
   const t = aggregate(transactions);
   const price = livePrice;
-  const rate = Number(el.rate.value) || 3.6725;
+  const rate = blendedRate(t); // AED per USDT, from the user's own P2P trades
 
+  // The BTC holding valued live IS the wallet's USDT balance.
   const valueUsdt = price != null ? t.btc * price : null;
-  const valueAed = valueUsdt != null ? valueUsdt * rate : null;
+  const valueAed = valueUsdt != null && rate != null ? valueUsdt * rate : null;
 
   el.btcHeld.textContent = btcFmt(t.btc);
-  el.investedUsdt.textContent = usd(t.investedUsdt);
-  el.investedAed.textContent = aedFmt(t.investedAed);
+  el.usdtReceivedTotal.textContent = usd(t.usdtReceived);
+  el.aedSubmittedTotal.textContent = aedFmt(t.aedSubmitted);
   el.avgPrice.textContent = t.avgPrice != null ? usd(t.avgPrice) : '—';
 
   el.walletUsdt.textContent = valueUsdt != null ? usd(valueUsdt) : '—';
-  el.walletAed.textContent = valueAed != null ? aedFmt(valueAed) : 'AED —';
+  el.walletAed.textContent = valueAed != null ? '≈ ' + aedFmt(valueAed) : 'AED —';
 
-  if (valueUsdt != null && t.investedUsdt > 0) {
-    const pl = valueUsdt - t.investedUsdt;
-    const plPct = (pl / t.investedUsdt) * 100;
+  // P/L vs the USDT actually put in.
+  if (valueUsdt != null && t.usdtReceived > 0) {
+    const pl = valueUsdt - t.usdtReceived;
+    const plPct = (pl / t.usdtReceived) * 100;
     el.plValue.textContent = signed(pl, usd);
     el.plPct.textContent = signed(plPct, (x) => fmt(x, 2) + '%');
     el.plBox.dataset.state = pl > 0 ? 'up' : pl < 0 ? 'down' : 'flat';
@@ -101,8 +99,8 @@ function renderTxList(price: number | null): void {
   el.clearAll.hidden = !has;
 
   [...transactions].reverse().forEach((tx) => {
-    const b = btcBought(tx);
-    const cost = usdtReceived(tx);
+    const b = btcOf(tx);
+    const cost = costUsdt(tx);
     const value = price != null ? b * price : null;
     const pl = value != null ? value - cost : null;
     const plPct = pl != null && cost > 0 ? (pl / cost) * 100 : null;
@@ -112,7 +110,7 @@ function renderTxList(price: number | null): void {
     li.innerHTML = `
       <div class="tx-main">
         <span class="tx-btc">${btcFmt(b)} BTC</span>
-        <span class="tx-sub">@ ${usd(tx.buyPrice)} · ${aedFmt(tx.aed)}</span>
+        <span class="tx-sub">@ ${usd(tx.buyPrice)} · ${aedFmt(tx.aedSubmitted)} → ${fmt(tx.usdtReceived, 2)} USDT</span>
       </div>
       <div class="tx-value">
         <div class="v">${value != null ? usd(value) : '—'}</div>
@@ -184,7 +182,6 @@ function connectStream(): void {
     try { applyTick(JSON.parse(ev.data) as PriceTick); } catch { /* ignore */ }
   };
   es.onerror = () => {
-    // EventSource auto-reconnects; meanwhile poll so the price keeps updating.
     if (livePrice == null) setPill('error', 'Reconnecting…');
     startPolling();
   };
@@ -193,9 +190,9 @@ function connectStream(): void {
 // ---- Form ----
 function readForm(): PurchaseInput {
   return {
-    aed: parseFloat(el.aed.value),
-    rate: parseFloat(el.rate.value),
-    fee: parseFloat(el.fee.value) || 0,
+    aedSubmitted: parseFloat(el.aedSubmitted.value),
+    usdtReceived: parseFloat(el.usdtReceived.value),
+    btcAmount: parseFloat(el.btcAmount.value),
     buyPrice: parseFloat(el.buyPrice.value),
   };
 }
@@ -205,8 +202,8 @@ function updatePreview(): void {
   const valid = isValidInput(f);
   el.preview.hidden = !valid;
   if (!valid) return;
-  el.pvUsdt.textContent = usd(usdtReceived(f));
-  el.pvBtc.textContent = btcFmt(btcBought(f)) + ' BTC';
+  el.pvRate.textContent = fmt(f.aedSubmitted / f.usdtReceived, 4) + ' AED/USDT';
+  el.pvCost.textContent = usd(f.btcAmount * f.buyPrice) + ' USDT';
 }
 
 async function addTx(e: Event): Promise<void> {
@@ -222,12 +219,10 @@ async function addTx(e: Event): Promise<void> {
       body: JSON.stringify(f),
     });
     transactions.push(created);
-    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ rate: f.rate, fee: f.fee }));
-    el.aed.value = '';
-    el.buyPrice.value = '';
+    el.form.reset();
     el.preview.hidden = true;
     render();
-    el.aed.focus();
+    el.aedSubmitted.focus();
   } catch (err) {
     alert('Could not save purchase. ' + (err as Error).message);
   } finally {
@@ -243,7 +238,7 @@ async function removeTx(id: string): Promise<void> {
   try {
     await api<void>(`/api/transactions/${id}`, { method: 'DELETE' });
   } catch (err) {
-    transactions = before; // rollback on failure
+    transactions = before;
     render();
     alert('Could not delete. ' + (err as Error).message);
   }
@@ -270,14 +265,12 @@ el.form.addEventListener('submit', addTx);
 el.useLive.addEventListener('click', () => {
   if (livePrice != null) { el.buyPrice.value = livePrice.toFixed(2); updatePreview(); }
 });
+el.calcBtc.addEventListener('click', () => {
+  const usdt = parseFloat(el.usdtReceived.value);
+  const price = parseFloat(el.buyPrice.value);
+  if (usdt > 0 && price > 0) { el.btcAmount.value = (usdt / price).toFixed(8); updatePreview(); }
+});
 el.clearAll.addEventListener('click', clearAll);
-
-// Restore remembered rate/fee
-try {
-  const last = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null');
-  if (last?.rate) el.rate.value = String(last.rate);
-  if (last?.fee != null) el.fee.value = String(last.fee);
-} catch { /* ignore */ }
 
 // ---- PWA install prompt (Chrome / Edge / Android) ----
 interface BeforeInstallPromptEvent extends Event {

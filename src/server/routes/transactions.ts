@@ -7,9 +7,9 @@ export const transactionsRouter = Router();
 
 interface Row {
   id: string;
-  aed: string;
-  rate: string;
-  fee: string;
+  aed_submitted: string;
+  usdt_received: string;
+  btc_amount: string;
   buy_price: string;
   created_at: Date | string;
 }
@@ -17,9 +17,9 @@ interface Row {
 function mapRow(r: Row): Purchase {
   return {
     id: r.id,
-    aed: Number(r.aed),
-    rate: Number(r.rate),
-    fee: Number(r.fee),
+    aedSubmitted: Number(r.aed_submitted),
+    usdtReceived: Number(r.usdt_received),
+    btcAmount: Number(r.btc_amount),
     buyPrice: Number(r.buy_price),
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
   };
@@ -47,9 +47,9 @@ transactionsRouter.get('/', async (_req, res, next) => {
 transactionsRouter.post('/', async (req, res, next) => {
   if (!guardDb(res)) return;
   const input = {
-    aed: Number(req.body?.aed),
-    rate: Number(req.body?.rate),
-    fee: Number(req.body?.fee),
+    aedSubmitted: Number(req.body?.aedSubmitted),
+    usdtReceived: Number(req.body?.usdtReceived),
+    btcAmount: Number(req.body?.btcAmount),
     buyPrice: Number(req.body?.buyPrice),
   };
   if (!isValidInput(input)) {
@@ -58,9 +58,9 @@ transactionsRouter.post('/', async (req, res, next) => {
   }
   try {
     const { rows } = await pool.query<Row>(
-      `INSERT INTO purchases (aed, rate, fee, buy_price)
+      `INSERT INTO purchases (aed_submitted, usdt_received, btc_amount, buy_price)
        VALUES ($1, $2, $3, $4) RETURNING *`,
-      [input.aed, input.rate, input.fee, input.buyPrice],
+      [input.aedSubmitted, input.usdtReceived, input.btcAmount, input.buyPrice],
     );
     res.status(201).json(mapRow(rows[0]));
   } catch (err) {

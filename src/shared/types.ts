@@ -1,12 +1,12 @@
 /** Data shared between the Node server and the browser client. */
 
 export interface PurchaseInput {
-  /** AED amount the user put in. */
-  aed: number;
-  /** AED per 1 USD (USDT ≈ USD). */
-  rate: number;
-  /** Trading fee as a percent, e.g. 0.1 for 0.1%. */
-  fee: number;
+  /** AED submitted on Binance P2P. */
+  aedSubmitted: number;
+  /** USDT actually received from the P2P trade. */
+  usdtReceived: number;
+  /** BTC amount bought with that USDT. */
+  btcAmount: number;
   /** BTC price (in USDT) the purchase was made at. */
   buyPrice: number;
 }

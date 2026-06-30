@@ -1,11 +1,16 @@
 # Mehrin · BTC Wallet Tracker
 
-A full-stack, **installable PWA** that tracks Bitcoin purchases the way you make
-them on Binance:
+A full-stack, **installable PWA** that tracks Bitcoin purchases the way Binance
+**P2P** actually works:
 
-**AED invested → converted to USDT → bought BTC at a price → valued live.**
+**AED submitted → USDT received → bought BTC at a price → valued live.**
 
-It streams the live **BTC/USDT** price and shows your full wallet balance,
+You enter the real numbers straight off Binance — the AED you submitted and the
+USDT you actually received (the P2P rate varies per merchant, so it isn't
+computed), then the BTC amount you bought and the price. That BTC is then valued
+at the live price and shown as your wallet's USDT balance.
+
+It streams the live **BTC/USDT** price and shows your wallet balance,
 profit/loss, and a breakdown of every purchase. The price is fetched
 **server-side** and pushed to the browser over SSE, so the client never talks to
 Binance directly (no CORS or regional blocks in the browser). Purchases are
@@ -26,12 +31,14 @@ client — one deployable, one URL.
 
 ## Features
 
-- **Add purchases** — enter AED invested, AED→USD rate (default `3.6725`), fee %,
-  and the BTC buy price. USDT received and BTC bought are computed for you.
+- **Add purchases** — enter AED submitted, USDT received, the BTC bought, and the
+  buy price (a `calc` button can estimate BTC from USDT ÷ price; a `live` button
+  fills the current price).
 - **Live price** — real-time BTC/USDT over SSE with a 24h change and tick flashes.
-- **Wallet balance** — total value of all BTC held, in USD/USDT **and** AED.
+- **Wallet balance** — total value of all BTC held, in USDT **and** AED (using
+  your own blended P2P rate).
 - **Profit / Loss** — overall and per-purchase, in value and percent.
-- **Stats** — BTC held, total invested (USDT & AED), average buy price.
+- **Stats** — BTC held, total USDT received, total AED submitted, average buy price.
 - **Installable PWA** — add to your home screen on Android/Chrome/iOS; offline
   app shell via a service worker.
 - **Mobile-first responsive UI** — single column on phones, two-column dashboard
@@ -39,16 +46,19 @@ client — one deployable, one URL.
 
 ## The math
 
-For each purchase:
+You enter the real Binance numbers per purchase: `aedSubmitted`, `usdtReceived`,
+`btcAmount`, and `buyPrice`. From those:
 
 ```
-USDT received = AED invested ÷ (AED/USD rate)
-BTC bought    = USDT received × (1 − fee%) ÷ BTC buy price
+Wallet balance (USDT) = Σ btcAmount × live BTC price
+Wallet balance (AED)  ≈ Wallet (USDT) × (Σ aedSubmitted ÷ Σ usdtReceived)   // your blended P2P rate
+Profit / Loss (USDT)  = Wallet (USDT) − Σ usdtReceived
+Avg. buy price        = Σ (btcAmount × buyPrice) ÷ Σ btcAmount
 ```
 
-Wallet value, P/L and averages are aggregated across all purchases and revalued
-against the live BTC price. The calculation lives in `src/shared/calc.ts` and is
-used by **both** the server and the client.
+Nothing is derived from a fixed peg or fee — the USDT you received is taken as-is
+because P2P rates vary per trade. The calculation lives in `src/shared/calc.ts`
+and is used by **both** the server and the client.
 
 ## Project layout
 

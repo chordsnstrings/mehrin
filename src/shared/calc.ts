@@ -1,20 +1,19 @@
 import type { PurchaseInput } from './types';
 
-/** USDT received when the AED is converted (USDT ≈ USD). */
-export function usdtReceived(p: PurchaseInput): number {
-  return p.rate > 0 ? p.aed / p.rate : 0;
+/** The BTC held from a purchase (entered directly off Binance). */
+export function btcOf(p: PurchaseInput): number {
+  return p.btcAmount;
 }
 
-/** BTC acquired after the trading fee, given the buy price. */
-export function btcBought(p: PurchaseInput): number {
-  const usdtForBtc = usdtReceived(p) * (1 - p.fee / 100);
-  return p.buyPrice > 0 ? usdtForBtc / p.buyPrice : 0;
+/** The cost basis of a purchase, in USDT (what was put in as USDT). */
+export function costUsdt(p: PurchaseInput): number {
+  return p.usdtReceived;
 }
 
 export interface Totals {
   btc: number;
-  investedUsdt: number;
-  investedAed: number;
+  usdtReceived: number;
+  aedSubmitted: number;
   /** Cost-weighted average buy price of the BTC held, or null when none. */
   avgPrice: number | null;
 }
@@ -22,25 +21,29 @@ export interface Totals {
 /** Aggregate a list of purchases into wallet totals. */
 export function aggregate(list: PurchaseInput[]): Totals {
   let btc = 0;
-  let investedUsdt = 0;
-  let investedAed = 0;
+  let usdtReceived = 0;
+  let aedSubmitted = 0;
   let costForHeld = 0;
   for (const p of list) {
-    const b = btcBought(p);
-    btc += b;
-    investedUsdt += usdtReceived(p);
-    investedAed += p.aed;
-    costForHeld += b * p.buyPrice;
+    btc += p.btcAmount;
+    usdtReceived += p.usdtReceived;
+    aedSubmitted += p.aedSubmitted;
+    costForHeld += p.btcAmount * p.buyPrice;
   }
-  return { btc, investedUsdt, investedAed, avgPrice: btc > 0 ? costForHeld / btc : null };
+  return { btc, usdtReceived, aedSubmitted, avgPrice: btc > 0 ? costForHeld / btc : null };
+}
+
+/** Blended P2P rate (AED per USDT) implied by all submissions, or null. */
+export function blendedRate(t: Totals): number | null {
+  return t.usdtReceived > 0 ? t.aedSubmitted / t.usdtReceived : null;
 }
 
 /** Validate raw input before persisting. */
 export function isValidInput(p: Partial<PurchaseInput>): p is PurchaseInput {
   return (
-    Number.isFinite(p.aed) && (p.aed as number) > 0 &&
-    Number.isFinite(p.rate) && (p.rate as number) > 0 &&
-    Number.isFinite(p.fee) && (p.fee as number) >= 0 &&
+    Number.isFinite(p.aedSubmitted) && (p.aedSubmitted as number) > 0 &&
+    Number.isFinite(p.usdtReceived) && (p.usdtReceived as number) > 0 &&
+    Number.isFinite(p.btcAmount) && (p.btcAmount as number) > 0 &&
     Number.isFinite(p.buyPrice) && (p.buyPrice as number) > 0
   );
 }

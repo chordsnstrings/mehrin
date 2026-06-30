@@ -28,14 +28,14 @@ const populate = `(() => {
   document.getElementById('priceUpdated').textContent = 'Updated ' + new Date(0).toLocaleTimeString();
   document.getElementById('livePill').dataset.state = 'live';
   document.getElementById('liveLabel').textContent = 'Live';
-  set('walletUsdt', '$4,940.61'); set('walletAed', 'AED 18,144.39');
+  set('walletUsdt', '$4,940.61'); set('walletAed', '≈ AED 18,144.39');
   set('plValue', '+$856.20'); set('plPct', '+20.96%');
   document.getElementById('plBox').dataset.state = 'up';
-  set('btcHeld', '0.04522900'); set('investedUsdt', '$4,084.41');
-  set('avgPrice', '$90,216.00'); set('investedAed', 'AED 15,000.00');
+  set('btcHeld', '0.04522900'); set('usdtReceivedTotal', '$4,084.41');
+  set('avgPrice', '$90,216.00'); set('aedSubmittedTotal', 'AED 15,000.00');
   const rows = [
-    ['0.03091100 BTC', '@ $88,000.00 · AED 10,000.00', '$3,376.61', '+$653.67 (+24.0%)'],
-    ['0.01431800 BTC', '@ $95,000.00 · AED 5,000.00', '$1,564.00', '+$202.53 (+14.9%)'],
+    ['0.03091100 BTC', '@ $88,000.00 · AED 10,000.00 → 2,722.94 USDT', '$3,376.61', '+$653.67 (+24.0%)'],
+    ['0.01431800 BTC', '@ $95,000.00 · AED 5,000.00 → 1,361.47 USDT', '$1,564.00', '+$202.53 (+14.9%)'],
   ];
   const list = document.getElementById('txList');
   document.getElementById('txEmpty').hidden = true;
