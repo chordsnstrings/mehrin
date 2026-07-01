@@ -93,38 +93,57 @@ function render(): void {
   renderTxList(price);
 }
 
+let renderedKey = '';
+
 function renderTxList(price: number | null): void {
-  el.txList.innerHTML = '';
   const has = transactions.length > 0;
   el.txEmpty.hidden = has;
   el.clearAll.hidden = !has;
 
-  [...transactions].reverse().forEach((tx) => {
-    const b = btcOf(tx);
+  const ordered = [...transactions].reverse();
+  const key = ordered.map((t) => t.id).join('|');
+
+  // Rebuild the DOM only when the set of purchases changes — so live price
+  // ticks just update the numbers in place (no flicker, no replayed animation).
+  if (key !== renderedKey) {
+    renderedKey = key;
+    el.txList.innerHTML = '';
+    ordered.forEach((tx, i) => {
+      const li = document.createElement('li');
+      li.className = 'tx-item';
+      li.dataset.tx = tx.id;
+      li.style.setProperty('--i', String(i));
+      li.innerHTML = `
+        <div class="tx-main">
+          <span class="tx-btc">${btcFmt(btcOf(tx))} BTC</span>
+          <span class="tx-sub">@ ${usd(tx.buyPrice)} · ${aedFmt(tx.aedSubmitted)} → ${fmt(tx.usdtReceived, 2)} USDT</span>
+        </div>
+        <div class="tx-value">
+          <div class="v"></div>
+          <div class="pl"></div>
+        </div>
+        <button class="tx-del" data-id="${tx.id}" aria-label="Delete purchase">×</button>`;
+      el.txList.appendChild(li);
+    });
+    el.txList.querySelectorAll<HTMLButtonElement>('.tx-del').forEach((btn) => {
+      btn.addEventListener('click', () => removeTx(btn.dataset.id as string));
+    });
+  }
+
+  // Update the live-valued figures on every render.
+  ordered.forEach((tx) => {
+    const li = el.txList.querySelector<HTMLElement>(`[data-tx="${tx.id}"]`);
+    if (!li) return;
     const cost = costUsdt(tx);
-    const value = price != null ? b * price : null;
+    const value = price != null ? btcOf(tx) * price : null;
     const pl = value != null ? value - cost : null;
     const plPct = pl != null && cost > 0 ? (pl / cost) * 100 : null;
-
-    const li = document.createElement('li');
-    li.className = 'tx-item';
-    li.innerHTML = `
-      <div class="tx-main">
-        <span class="tx-btc">${btcFmt(b)} BTC</span>
-        <span class="tx-sub">@ ${usd(tx.buyPrice)} · ${aedFmt(tx.aedSubmitted)} → ${fmt(tx.usdtReceived, 2)} USDT</span>
-      </div>
-      <div class="tx-value">
-        <div class="v">${value != null ? usd(value) : '—'}</div>
-        <div class="pl ${pl == null ? '' : pl >= 0 ? 'up' : 'down'}">
-          ${pl == null ? '' : `${signed(pl, usd)} (${signed(plPct as number, (x) => fmt(x, 1) + '%')})`}
-        </div>
-      </div>
-      <button class="tx-del" data-id="${tx.id}" aria-label="Delete purchase">×</button>`;
-    el.txList.appendChild(li);
-  });
-
-  el.txList.querySelectorAll<HTMLButtonElement>('.tx-del').forEach((btn) => {
-    btn.addEventListener('click', () => removeTx(btn.dataset.id as string));
+    const vEl = li.querySelector<HTMLElement>('.v')!;
+    const plEl = li.querySelector<HTMLElement>('.pl')!;
+    vEl.textContent = value != null ? usd(value) : '—';
+    plEl.className = 'pl ' + (pl == null ? '' : pl >= 0 ? 'up' : 'down');
+    plEl.textContent =
+      pl == null ? '' : `${signed(pl, usd)} (${signed(plPct as number, (x) => fmt(x, 1) + '%')})`;
   });
 }
 
