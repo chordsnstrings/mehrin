@@ -282,6 +282,22 @@ main {
 .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 @keyframes sheet { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+/* ---- Confirm dialog ---- */
+.confirm-card { max-width: 400px; }
+.confirm-text { color: var(--muted); font-size: 14px; margin: 10px 0 22px; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.big-ghost { padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 600; text-align: center; }
+.big-ghost:hover { color: var(--text); border-color: var(--stroke-strong); background: rgba(255, 255, 255, 0.07); }
+.danger-btn {
+  position: relative; overflow: hidden;
+  background: linear-gradient(140deg, #ff6b85, var(--red)); color: #fff;
+  border: none; border-radius: 14px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: filter 0.15s, transform 0.08s, box-shadow 0.2s;
+  box-shadow: 0 10px 28px rgba(255, 84, 115, 0.35);
+}
+.danger-btn:hover { filter: brightness(1.06); box-shadow: 0 14px 34px rgba(255, 84, 115, 0.45); }
+.danger-btn:active { transform: scale(0.98); }
+
 /* ---- Form ---- */
 .form { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }

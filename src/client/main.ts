@@ -30,6 +30,8 @@ const el = {
   txList: $('txList'), txEmpty: $('txEmpty'), clearAll: $('clearAll'),
   submitBtn: $<HTMLButtonElement>('submitBtn'), installBtn: $<HTMLButtonElement>('installBtn'),
   addFab: $('addFab'), addModal: $('addModal'), emptyAdd: $('emptyAdd'),
+  confirmModal: $('confirmModal'), confirmText: $('confirmText'),
+  confirmDelete: $<HTMLButtonElement>('confirmDelete'),
 };
 
 // ---- Formatting ----
@@ -126,7 +128,7 @@ function renderTxList(price: number | null): void {
       el.txList.appendChild(li);
     });
     el.txList.querySelectorAll<HTMLButtonElement>('.tx-del').forEach((btn) => {
-      btn.addEventListener('click', () => removeTx(btn.dataset.id as string));
+      btn.addEventListener('click', () => askDelete(btn.dataset.id as string));
     });
   }
 
@@ -251,7 +253,26 @@ async function addTx(e: Event): Promise<void> {
   }
 }
 
-async function removeTx(id: string): Promise<void> {
+// Deletion is protected by a confirmation dialog so a stray tap can't wipe data.
+let pendingDeleteId: string | null = null;
+
+function askDelete(id: string): void {
+  const tx = transactions.find((t) => t.id === id);
+  if (!tx) return;
+  pendingDeleteId = id;
+  el.confirmText.textContent =
+    `${btcFmt(btcOf(tx))} BTC @ ${usd(tx.buyPrice)} · ${aedFmt(tx.aedSubmitted)}. This can't be undone.`;
+  el.confirmModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeConfirm(): void {
+  el.confirmModal.hidden = true;
+  pendingDeleteId = null;
+  document.body.style.overflow = '';
+}
+
+async function performDelete(id: string): Promise<void> {
   const before = transactions;
   transactions = transactions.filter((t) => t.id !== id);
   render();
@@ -295,8 +316,21 @@ el.emptyAdd.addEventListener('click', openModal);
 el.addModal.querySelectorAll<HTMLElement>('[data-close]').forEach((n) =>
   n.addEventListener('click', closeModal),
 );
+
+// ---- Delete confirmation ----
+el.confirmDelete.addEventListener('click', () => {
+  const id = pendingDeleteId;
+  closeConfirm();
+  if (id) performDelete(id);
+});
+el.confirmModal.querySelectorAll<HTMLElement>('[data-cancel]').forEach((n) =>
+  n.addEventListener('click', closeConfirm),
+);
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !el.addModal.hidden) closeModal();
+  if (e.key !== 'Escape') return;
+  if (!el.confirmModal.hidden) closeConfirm();
+  else if (!el.addModal.hidden) closeModal();
 });
 
 // ---- Wire up ----

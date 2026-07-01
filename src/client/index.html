@@ -163,6 +163,19 @@
     </div>
   </div>
 
+  <!-- Delete confirmation -->
+  <div class="modal" id="confirmModal" hidden>
+    <div class="modal-backdrop" data-cancel></div>
+    <div class="modal-card glass confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h2 class="card-title" id="confirmTitle">Delete this purchase?</h2>
+      <p class="confirm-text" id="confirmText"></p>
+      <div class="confirm-actions">
+        <button type="button" class="ghost-btn big-ghost" id="confirmCancel" data-cancel>Cancel</button>
+        <button type="button" class="danger-btn" id="confirmDelete">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/main.js"></script>
 </body>
 </html>

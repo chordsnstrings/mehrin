@@ -56,6 +56,7 @@ const populate = `(() => {
 const shots = [
   { name: 'mobile-390', w: 390, mobile: true, populate: true },
   { name: 'mobile-modal-390', w: 390, mobile: true, populate: true, modal: true },
+  { name: 'mobile-confirm-390', w: 390, mobile: true, populate: true, confirm: true },
   { name: 'mobile-empty-390', w: 390, mobile: true, populate: false },
   { name: 'small-320', w: 320, mobile: true, populate: true },
   { name: 'desktop-1100', w: 1100, mobile: false, populate: true },
@@ -74,6 +75,7 @@ for (const s of shots) {
   await new Promise((r) => setTimeout(r, 700));
   if (s.populate) await send('Runtime.evaluate', { expression: populate });
   if (s.modal) await send('Runtime.evaluate', { expression: `document.getElementById('addFab').click()` });
+  if (s.confirm) await send('Runtime.evaluate', { expression: `document.querySelector('.tx-del').click()` });
   await new Promise((r) => setTimeout(r, 350));
   const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
   writeFileSync(`/tmp/shot-${s.name}.png`, Buffer.from(shot.data, 'base64'));
