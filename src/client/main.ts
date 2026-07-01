@@ -29,6 +29,7 @@ const el = {
   preview: $('preview'), pvRate: $('pvRate'), pvCost: $('pvCost'),
   txList: $('txList'), txEmpty: $('txEmpty'), clearAll: $('clearAll'),
   submitBtn: $<HTMLButtonElement>('submitBtn'), installBtn: $<HTMLButtonElement>('installBtn'),
+  addFab: $('addFab'), addModal: $('addModal'), emptyAdd: $('emptyAdd'),
 };
 
 // ---- Formatting ----
@@ -222,7 +223,7 @@ async function addTx(e: Event): Promise<void> {
     el.form.reset();
     el.preview.hidden = true;
     render();
-    el.aedSubmitted.focus();
+    closeModal();
   } catch (err) {
     alert('Could not save purchase. ' + (err as Error).message);
   } finally {
@@ -258,6 +259,26 @@ async function clearAll(): Promise<void> {
     alert('Could not clear. ' + (err as Error).message);
   }
 }
+
+// ---- Add-purchase modal ----
+function openModal(): void {
+  el.addModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  updatePreview();
+  setTimeout(() => el.aedSubmitted.focus(), 50);
+}
+function closeModal(): void {
+  el.addModal.hidden = true;
+  document.body.style.overflow = '';
+}
+el.addFab.addEventListener('click', openModal);
+el.emptyAdd.addEventListener('click', openModal);
+el.addModal.querySelectorAll<HTMLElement>('[data-close]').forEach((n) =>
+  n.addEventListener('click', closeModal),
+);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el.addModal.hidden) closeModal();
+});
 
 // ---- Wire up ----
 el.form.addEventListener('submit', addTx);

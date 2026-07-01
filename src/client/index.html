@@ -19,12 +19,14 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <div class="bg" aria-hidden="true"></div>
+
   <header class="app-bar">
     <div class="brand">
       <span class="brand-mark">₿</span>
       <div>
         <h1>Mehrin</h1>
-        <p class="tagline">BTC Wallet Tracker</p>
+        <p class="tagline">Wallet Tracker</p>
       </div>
     </div>
     <div class="bar-right">
@@ -37,116 +39,129 @@
   </header>
 
   <main>
-    <div class="grid">
-      <!-- LIVE PRICE -->
-      <section class="card price-card">
-        <div class="price-head">
-          <span class="muted">BTC / USDT · live</span>
-          <span class="chg" id="priceChange">—</span>
-        </div>
-        <div class="price-main" id="livePrice">—</div>
-        <div class="muted small" id="priceUpdated">Waiting for first tick…</div>
-      </section>
-
-      <!-- WALLET SUMMARY -->
-      <section class="card summary-card">
+    <!-- WALLET — hero -->
+    <section class="card glass hero">
+      <div class="hero-head">
         <h2 class="card-title">Wallet balance</h2>
-        <div class="balance-grid">
-          <div class="balance-main">
-            <div class="muted small">Total value</div>
-            <div class="big" id="walletUsdt">$0.00</div>
-            <div class="muted small" id="walletAed">AED 0.00</div>
-          </div>
-          <div class="balance-pl" id="plBox" data-state="flat">
-            <div class="muted small">Profit / Loss</div>
-            <div class="pl-value" id="plValue">$0.00</div>
-            <div class="pl-pct" id="plPct">0.00%</div>
-          </div>
+        <div class="market" title="Live BTC price (used to value your wallet)">
+          <span class="market-price" id="livePrice">—</span>
+          <span class="chg" id="priceChange"></span>
         </div>
-        <div class="stat-row">
-          <div class="stat">
-            <span class="muted small">BTC held</span>
-            <strong id="btcHeld">0.00000000</strong>
-          </div>
-          <div class="stat">
-            <span class="muted small">USDT received</span>
-            <strong id="usdtReceivedTotal">$0.00</strong>
-          </div>
-          <div class="stat">
-            <span class="muted small">Avg. buy price</span>
-            <strong id="avgPrice">—</strong>
-          </div>
-          <div class="stat">
-            <span class="muted small">AED submitted</span>
-            <strong id="aedSubmittedTotal">AED 0.00</strong>
-          </div>
+      </div>
+
+      <div class="balance-grid">
+        <div class="balance-main">
+          <div class="muted small">Total value</div>
+          <div class="big" id="walletUsdt">$0.00</div>
+          <div class="muted small" id="walletAed">AED —</div>
         </div>
-      </section>
-
-      <!-- ADD PURCHASE -->
-      <section class="card">
-        <h2 class="card-title">Add a purchase</h2>
-        <form id="buyForm" class="form" autocomplete="off">
-          <label class="field">
-            <span>AED submitted</span>
-            <div class="input-wrap">
-              <span class="prefix">AED</span>
-              <input type="number" id="aedSubmitted" inputmode="decimal" step="any" min="0" placeholder="1000" required />
-            </div>
-          </label>
-
-          <label class="field">
-            <span>USDT received</span>
-            <div class="input-wrap">
-              <span class="prefix">USDT</span>
-              <input type="number" id="usdtReceived" inputmode="decimal" step="any" min="0" placeholder="272.10" required />
-            </div>
-            <small class="hint">Exactly what the P2P trade credited to your wallet.</small>
-          </label>
-
-          <label class="field">
-            <span>BTC bought</span>
-            <div class="input-wrap">
-              <span class="prefix">₿</span>
-              <input type="number" id="btcAmount" inputmode="decimal" step="any" min="0" placeholder="0.00412" required />
-              <button type="button" class="mini-btn" id="calcBtc" title="Estimate from USDT ÷ price">calc</button>
-            </div>
-          </label>
-
-          <label class="field">
-            <span>BTC buy price</span>
-            <div class="input-wrap">
-              <span class="prefix">$</span>
-              <input type="number" id="buyPrice" inputmode="decimal" step="any" min="0" placeholder="e.g. 64250" required />
-              <button type="button" class="mini-btn" id="useLive" title="Use live price">live</button>
-            </div>
-          </label>
-
-          <div class="preview" id="preview" hidden>
-            <div><span class="muted small">Effective rate</span><strong id="pvRate">—</strong></div>
-            <div><span class="muted small">BTC cost</span><strong id="pvCost">—</strong></div>
-          </div>
-
-          <button type="submit" class="primary-btn" id="submitBtn">Add to wallet</button>
-        </form>
-      </section>
-
-      <!-- TRANSACTIONS -->
-      <section class="card tx-card">
-        <div class="card-title-row">
-          <h2 class="card-title">Purchases</h2>
-          <button type="button" class="ghost-btn" id="clearAll" hidden>Clear all</button>
+        <div class="balance-pl" id="plBox" data-state="flat">
+          <div class="muted small">Profit / Loss</div>
+          <div class="pl-value" id="plValue">$0.00</div>
+          <div class="pl-pct" id="plPct">0.00%</div>
         </div>
-        <ul class="tx-list" id="txList"></ul>
-        <p class="empty" id="txEmpty">No purchases yet. Add one above to start tracking.</p>
-      </section>
-    </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="muted small">BTC held</span>
+          <strong id="btcHeld">0.00000000</strong>
+        </div>
+        <div class="stat">
+          <span class="muted small">USDT received</span>
+          <strong id="usdtReceivedTotal">$0.00</strong>
+        </div>
+        <div class="stat">
+          <span class="muted small">Avg. buy price</span>
+          <strong id="avgPrice">—</strong>
+        </div>
+        <div class="stat">
+          <span class="muted small">AED submitted</span>
+          <strong id="aedSubmittedTotal">AED 0.00</strong>
+        </div>
+      </div>
+
+      <div class="hero-foot muted small" id="priceUpdated">Waiting for first tick…</div>
+    </section>
+
+    <!-- PURCHASES -->
+    <section class="card glass tx-card">
+      <div class="card-title-row">
+        <h2 class="card-title">Purchases</h2>
+        <button type="button" class="ghost-btn" id="clearAll" hidden>Clear all</button>
+      </div>
+      <ul class="tx-list" id="txList"></ul>
+      <p class="empty" id="txEmpty">
+        No purchases yet.
+        <button type="button" class="link-btn" id="emptyAdd">Add your first purchase</button>
+      </p>
+    </section>
 
     <p class="disclaimer">
-      Prices stream live from Binance via this app's server. This tool is for personal
-      tracking only — it does not place trades or connect to your exchange account.
+      Prices stream live from Binance. This tool is for personal tracking only — it does
+      not place trades or connect to your exchange account.
     </p>
   </main>
+
+  <!-- Add purchase — floating action button -->
+  <button type="button" class="fab" id="addFab" aria-label="Add a purchase">
+    <span aria-hidden="true">+</span>
+  </button>
+
+  <!-- Add purchase — modal -->
+  <div class="modal" id="addModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 class="card-title" id="modalTitle">Add a purchase</h2>
+        <button type="button" class="icon-btn" id="closeModal" aria-label="Close" data-close>×</button>
+      </div>
+
+      <form id="buyForm" class="form" autocomplete="off">
+        <label class="field">
+          <span>AED submitted</span>
+          <div class="input-wrap">
+            <span class="prefix">AED</span>
+            <input type="number" id="aedSubmitted" inputmode="decimal" step="any" min="0" placeholder="1000" required />
+          </div>
+        </label>
+
+        <label class="field">
+          <span>USDT received</span>
+          <div class="input-wrap">
+            <span class="prefix">USDT</span>
+            <input type="number" id="usdtReceived" inputmode="decimal" step="any" min="0" placeholder="272.10" required />
+          </div>
+          <small class="hint">Exactly what the P2P trade credited to your wallet.</small>
+        </label>
+
+        <label class="field">
+          <span>BTC bought</span>
+          <div class="input-wrap">
+            <span class="prefix">₿</span>
+            <input type="number" id="btcAmount" inputmode="decimal" step="any" min="0" placeholder="0.00412" required />
+            <button type="button" class="mini-btn" id="calcBtc" title="Estimate from USDT ÷ price">calc</button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>BTC buy price</span>
+          <div class="input-wrap">
+            <span class="prefix">$</span>
+            <input type="number" id="buyPrice" inputmode="decimal" step="any" min="0" placeholder="e.g. 64250" required />
+            <button type="button" class="mini-btn" id="useLive" title="Use live price">live</button>
+          </div>
+        </label>
+
+        <div class="preview" id="preview" hidden>
+          <div><span class="muted small">Effective rate</span><strong id="pvRate">—</strong></div>
+          <div><span class="muted small">BTC cost</span><strong id="pvCost">—</strong></div>
+        </div>
+
+        <button type="submit" class="primary-btn" id="submitBtn">Add to wallet</button>
+      </form>
+    </div>
+  </div>
 
   <script type="module" src="/main.js"></script>
 </body>

@@ -55,10 +55,11 @@ const populate = `(() => {
 
 const shots = [
   { name: 'mobile-390', w: 390, mobile: true, populate: true },
+  { name: 'mobile-modal-390', w: 390, mobile: true, populate: true, modal: true },
   { name: 'mobile-empty-390', w: 390, mobile: true, populate: false },
   { name: 'small-320', w: 320, mobile: true, populate: true },
-  { name: 'tablet-768', w: 768, mobile: false, populate: true },
   { name: 'desktop-1100', w: 1100, mobile: false, populate: true },
+  { name: 'desktop-modal-1100', w: 1100, mobile: false, populate: true, modal: true },
 ];
 
 await new Promise((r) => ws.once('open', r));
@@ -72,7 +73,8 @@ for (const s of shots) {
   await send('Page.navigate', { url: 'http://localhost:8139/' });
   await new Promise((r) => setTimeout(r, 700));
   if (s.populate) await send('Runtime.evaluate', { expression: populate });
-  await new Promise((r) => setTimeout(r, 250));
+  if (s.modal) await send('Runtime.evaluate', { expression: `document.getElementById('addFab').click()` });
+  await new Promise((r) => setTimeout(r, 350));
   const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
   writeFileSync(`/tmp/shot-${s.name}.png`, Buffer.from(shot.data, 'base64'));
   console.log('saved /tmp/shot-' + s.name + '.png');
