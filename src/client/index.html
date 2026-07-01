@@ -88,7 +88,12 @@
     <section class="card glass tx-card">
       <div class="card-title-row">
         <h2 class="card-title">Purchases</h2>
-        <button type="button" class="ghost-btn" id="clearAll" hidden>Clear all</button>
+        <div class="tx-actions">
+          <button type="button" class="ghost-btn" id="exportBtn" hidden>Export</button>
+          <button type="button" class="ghost-btn" id="importBtn">Import</button>
+          <button type="button" class="ghost-btn danger" id="clearAll" hidden>Clear all</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden />
+        </div>
       </div>
       <ul class="tx-list" id="txList"></ul>
       <p class="empty" id="txEmpty">
@@ -175,6 +180,8 @@
       </div>
     </div>
   </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
 
   <script type="module" src="/main.js"></script>
 </body>

@@ -216,12 +216,15 @@ main {
 .link-btn { background: none; border: none; color: var(--gold-2); font: inherit; cursor: pointer; text-decoration: underline; padding: 0; }
 
 /* ---- Buttons ---- */
+.tx-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .ghost-btn {
   background: rgba(255, 255, 255, 0.05); color: var(--muted);
   border: 1px solid var(--stroke); border-radius: 10px; padding: 6px 12px; font-size: 12px; cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.1s;
 }
-.ghost-btn:hover { color: var(--red); border-color: rgba(255, 84, 115, 0.5); background: rgba(255, 84, 115, 0.08); }
+.ghost-btn:hover { color: var(--text); border-color: var(--stroke-strong); background: rgba(255, 255, 255, 0.08); }
+.ghost-btn:active { transform: scale(0.96); }
+.ghost-btn.danger:hover { color: var(--red); border-color: rgba(255, 84, 115, 0.5); background: rgba(255, 84, 115, 0.08); }
 
 .primary-btn {
   position: relative; overflow: hidden;
@@ -329,6 +332,20 @@ main {
 .preview strong { display: block; font-size: 16px; margin-top: 2px; font-variant-numeric: tabular-nums; }
 
 .disclaimer { color: var(--muted); font-size: 11px; text-align: center; line-height: 1.5; margin: 4px 8px 0; animation: fade 0.9s ease both; animation-delay: 0.25s; }
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed; left: 50%; z-index: 50;
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(12px);
+  max-width: calc(100% - 32px); text-align: center;
+  background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--stroke-strong); color: var(--text);
+  padding: 12px 18px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow); pointer-events: none;
+  opacity: 0; transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ---- Responsive ---- */
 @media (min-width: 480px) {

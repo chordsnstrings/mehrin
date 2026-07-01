@@ -45,6 +45,10 @@ client — one deployable, one URL, no database.
   on tablets/desktop.
 - **No database** — purchases persist in a JSON file on the server (`DATA_FILE`),
   written atomically. Point it at a mounted volume to keep it across redeploys.
+- **Backups & self-heal** — the browser keeps a localStorage mirror of your
+  purchases; if the server ever comes up empty (e.g. an ephemeral-FS reset), the
+  app automatically restores it on next load. Plus manual **Export** (download a
+  JSON backup) and **Import** (restore from a file). Deletion is confirmation-gated.
 
 ## The math
 

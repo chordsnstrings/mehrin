@@ -32,6 +32,8 @@ const el = {
   addFab: $('addFab'), addModal: $('addModal'), emptyAdd: $('emptyAdd'),
   confirmModal: $('confirmModal'), confirmText: $('confirmText'),
   confirmDelete: $<HTMLButtonElement>('confirmDelete'),
+  exportBtn: $('exportBtn'), importBtn: $('importBtn'),
+  importFile: $<HTMLInputElement>('importFile'), toast: $('toast'),
 };
 
 // ---- Formatting ----
@@ -51,12 +53,53 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }
 
+// ---- Local backup mirror (self-heals the server after an ephemeral reset) ----
+const MIRROR_KEY = 'mehrin.backup.v1';
+
+function loadMirror(): Purchase[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(MIRROR_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+function saveMirror(list: Purchase[]): void {
+  try { localStorage.setItem(MIRROR_KEY, JSON.stringify(list)); } catch { /* quota/full */ }
+}
+
+/** Re-POST backed-up purchases to a freshly-wiped server. */
+async function restoreToServer(list: Purchase[]): Promise<Purchase[]> {
+  const out: Purchase[] = [];
+  for (const p of list) {
+    try {
+      const created = await api<Purchase>('/api/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          aedSubmitted: p.aedSubmitted, usdtReceived: p.usdtReceived,
+          btcAmount: p.btcAmount, buyPrice: p.buyPrice,
+        }),
+      });
+      out.push(created);
+    } catch { /* skip a bad entry, keep going */ }
+  }
+  return out;
+}
+
 async function loadTransactions(): Promise<void> {
   try {
-    transactions = await api<Purchase[]>('/api/transactions');
+    let server = await api<Purchase[]>('/api/transactions');
+    const mirror = loadMirror();
+    // Server empty but we have a local backup → it was reset; restore it.
+    if (server.length === 0 && mirror.length > 0) {
+      server = await restoreToServer(mirror);
+      if (server.length) showToast(`Restored ${server.length} purchase${server.length === 1 ? '' : 's'} from backup`);
+    }
+    transactions = server;
+    saveMirror(transactions); // server is the source of truth once loaded
   } catch (err) {
     console.warn('Failed to load purchases', err);
-    transactions = [];
+    transactions = loadMirror(); // offline: show the last known backup
   }
   render();
 }
@@ -101,6 +144,7 @@ function renderTxList(price: number | null): void {
   const has = transactions.length > 0;
   el.txEmpty.hidden = has;
   el.clearAll.hidden = !has;
+  el.exportBtn.hidden = !has;
 
   const ordered = [...transactions].reverse();
   const key = ordered.map((t) => t.id).join('|');
@@ -241,6 +285,7 @@ async function addTx(e: Event): Promise<void> {
       body: JSON.stringify(f),
     });
     transactions.push(created);
+    saveMirror(transactions);
     el.form.reset();
     el.preview.hidden = true;
     render();
@@ -278,6 +323,7 @@ async function performDelete(id: string): Promise<void> {
   render();
   try {
     await api<void>(`/api/transactions/${id}`, { method: 'DELETE' });
+    saveMirror(transactions);
   } catch (err) {
     transactions = before;
     render();
@@ -293,11 +339,78 @@ async function clearAll(): Promise<void> {
   render();
   try {
     await api<void>('/api/transactions', { method: 'DELETE' });
+    saveMirror([]); // clearing is intentional — clear the backup too
   } catch (err) {
     transactions = before;
     render();
     alert('Could not clear. ' + (err as Error).message);
   }
+}
+
+// ---- Toast ----
+let toastTimer: number | null = null;
+function showToast(msg: string): void {
+  el.toast.textContent = msg;
+  el.toast.hidden = false;
+  requestAnimationFrame(() => el.toast.classList.add('show'));
+  if (toastTimer != null) clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    el.toast.classList.remove('show');
+    setTimeout(() => { el.toast.hidden = true; }, 300);
+  }, 3200);
+}
+
+// ---- Export / Import ----
+function exportData(): void {
+  if (!transactions.length) return;
+  const blob = new Blob([JSON.stringify(transactions, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mehrin-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Backup downloaded');
+}
+
+async function importData(file: File): Promise<void> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    alert('That file is not a valid JSON backup.');
+    return;
+  }
+  if (!Array.isArray(parsed)) {
+    alert('Backup must be a list of purchases.');
+    return;
+  }
+  const valid = parsed
+    .map((p) => ({
+      aedSubmitted: Number((p as Purchase).aedSubmitted),
+      usdtReceived: Number((p as Purchase).usdtReceived),
+      btcAmount: Number((p as Purchase).btcAmount),
+      buyPrice: Number((p as Purchase).buyPrice),
+    }))
+    .filter(isValidInput);
+  if (!valid.length) {
+    alert('No valid purchases found in that file.');
+    return;
+  }
+  if (!confirm(`Import ${valid.length} purchase${valid.length === 1 ? '' : 's'}? They will be added to your wallet.`)) return;
+  let ok = 0;
+  for (const p of valid) {
+    try {
+      const created = await api<Purchase>('/api/transactions', { method: 'POST', body: JSON.stringify(p) });
+      transactions.push(created);
+      ok++;
+    } catch { /* skip */ }
+  }
+  saveMirror(transactions);
+  render();
+  showToast(`Imported ${ok} purchase${ok === 1 ? '' : 's'}`);
 }
 
 // ---- Add-purchase modal ----
@@ -326,6 +439,15 @@ el.confirmDelete.addEventListener('click', () => {
 el.confirmModal.querySelectorAll<HTMLElement>('[data-cancel]').forEach((n) =>
   n.addEventListener('click', closeConfirm),
 );
+
+// ---- Export / Import ----
+el.exportBtn.addEventListener('click', exportData);
+el.importBtn.addEventListener('click', () => el.importFile.click());
+el.importFile.addEventListener('change', () => {
+  const file = el.importFile.files?.[0];
+  if (file) importData(file);
+  el.importFile.value = ''; // allow re-importing the same file
+});
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
