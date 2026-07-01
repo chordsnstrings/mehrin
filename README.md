@@ -14,20 +14,20 @@ It streams the live **BTC/USDT** price and shows your wallet balance,
 profit/loss, and a breakdown of every purchase. The price is fetched
 **server-side** and pushed to the browser over SSE, so the client never talks to
 Binance directly (no CORS or regional blocks in the browser). Purchases are
-stored in **PostgreSQL**.
+stored **server-side in a single JSON file** — no database to run or pay for.
 
 ## Stack
 
 | Layer | Tech |
 | --- | --- |
 | Backend | **Node.js + TypeScript**, Express |
-| Database | **PostgreSQL** (`pg`) |
+| Storage | **JSON file** on the server (atomic writes, no database) |
 | Live price | Server-side Binance WebSocket → **SSE** to the browser (REST fallback) |
 | Frontend | TypeScript bundled with esbuild, mobile-first responsive UI, PWA |
-| Hosting | **DigitalOcean App Platform** (`.do/app.yaml`) |
+| Hosting | Any Node host — **Droplet + Docker** recommended (durable, ~$4–6/mo) |
 
 Everything ships as a single Node service that serves the API *and* the built
-client — one deployable, one URL.
+client — one deployable, one URL, no database.
 
 ## Features
 
@@ -43,6 +43,8 @@ client — one deployable, one URL.
   app shell via a service worker.
 - **Mobile-first responsive UI** — single column on phones, two-column dashboard
   on tablets/desktop.
+- **No database** — purchases persist in a JSON file on the server (`DATA_FILE`),
+  written atomically. Point it at a mounted volume to keep it across redeploys.
 
 ## The math
 
@@ -66,12 +68,13 @@ and is used by **both** the server and the client.
 src/
   shared/      calc.ts, types.ts      — logic shared by server + client
   server/      index.ts               — Express app (API + static + SPA)
-               db.ts                  — Postgres pool + migration
+               store.ts               — JSON file store (atomic writes)
                price.ts               — Binance WS price service
                routes/transactions.ts — purchases CRUD
   client/      index.html, styles.css — mobile-first UI
                main.ts                — client logic (API + SSE + PWA)
                manifest.webmanifest, sw.js, icons/
+Dockerfile     container image (mounts /data volume for the JSON store)
 .do/app.yaml   DigitalOcean App Platform spec
 ```
 
@@ -89,14 +92,12 @@ src/
 
 ## Run locally
 
-You need Node ≥ 20 and a PostgreSQL database.
+You need only Node ≥ 20 — no database.
 
 ```bash
 npm install
-cp .env.example .env          # set DATABASE_URL (and PGSSL=disable for local PG)
-export $(grep -v '^#' .env | xargs)
 npm run build
-npm start                     # http://localhost:8080
+npm start                     # http://localhost:8080  (stores ./data/purchases.json)
 ```
 
 For development with live rebuilds:
@@ -105,29 +106,47 @@ For development with live rebuilds:
 npm run dev                   # rebuilds client, runs server with tsx watch
 ```
 
-The schema is created automatically on boot (`migrate()` in `src/server/db.ts`).
+Configure with env vars (all optional): `DATA_FILE` (where the JSON store lives),
+`PORT`, `PRICE_SYMBOL`. See `.env.example`.
 
-## Deploy to DigitalOcean App Platform
+## Where the data lives
 
-1. Push this repo to GitHub (already wired to `chordsnstrings/mehrin`).
-2. In the DO dashboard: **Create → Apps → from this repo**. App Platform detects
-   `.do/app.yaml`, which defines:
-   - a **Node web service** (`npm run build` → `npm start`) with a `/api/health`
-     check, and
-   - a **managed PostgreSQL** database; its connection string is injected as
-     `DATABASE_URL` via `${db.DATABASE_URL}`.
-3. App Platform serves the app over **HTTPS**, which (together with the manifest +
-   service worker below) makes it **installable in Chrome**.
+Purchases are written to the JSON file at `DATA_FILE` (default `./data/purchases.json`)
+with atomic temp-file-and-rename writes. To keep the data, that path must be on
+**durable storage**:
+
+| Host | Durable? | Notes |
+| --- | --- | --- |
+| **Droplet + Docker volume** | ✅ Yes | Recommended. `-v mehrin-data:/data`, `DATA_FILE=/data/purchases.json`. ~$4–6/mo. |
+| Bare Droplet / VPS / your machine | ✅ Yes | The file just sits on disk. |
+| **DO App Platform** | ⚠️ No | Filesystem is **ephemeral** — resets on every redeploy/restart. Fine for a demo; use a Droplet for real data. |
+
+## Deploy on a Droplet (recommended — durable + cheapest)
+
+```bash
+# on the Droplet (Docker installed):
+git clone https://github.com/chordsnstrings/mehrin.git && cd mehrin
+docker build -t mehrin .
+docker volume create mehrin-data
+docker run -d --name mehrin --restart unless-stopped \
+  -p 80:8080 -v mehrin-data:/data mehrin
+```
+
+Put it behind a reverse proxy (Caddy/Nginx) or Cloudflare for **HTTPS** — which,
+with the manifest + service worker, makes it **installable in Chrome**.
 
 > **Region note:** Binance blocks some regions (e.g. the US — you'll see HTTP
-> `451`). Deploy in a region where Binance is reachable (the spec defaults to
-> `ams`). You can also change the tracked market with the `PRICE_SYMBOL` env var.
+> `451`). Deploy where Binance is reachable. Change the market with `PRICE_SYMBOL`.
 
-You can also deploy with the CLI:
+## Deploy on DigitalOcean App Platform (demo only)
 
 ```bash
 doctl apps create --spec .do/app.yaml
 ```
+
+Zero-config and HTTPS out of the box, but remember the filesystem is **ephemeral**
+there, so purchases reset on redeploy. Use it to try the app; use a Droplet to
+keep your data.
 
 ## Installing the PWA (Chrome)
 
@@ -138,7 +157,7 @@ is satisfied by:
 - a valid `manifest.webmanifest` with `name`, `short_name`, `start_url`,
   `display: standalone`, and **192px + 512px** PNG icons (plus a maskable icon);
 - a registered **service worker** with a `fetch` handler (`sw.js`);
-- being served over **HTTPS** (provided by App Platform).
+- being served over **HTTPS** (via your reverse proxy / Cloudflare, or App Platform).
 
 ## Disclaimer
 

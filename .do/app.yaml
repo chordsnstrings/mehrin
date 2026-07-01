@@ -1,6 +1,12 @@
-# DigitalOcean App Platform spec for Mehrin.
-# Create the app with: doctl apps create --spec .do/app.yaml
-# (or import the repo in the DO dashboard, which auto-detects this file).
+# DigitalOcean App Platform spec for Mehrin (no database — purchases are stored
+# in a JSON file on the server).
+#
+# ⚠️ IMPORTANT: App Platform's filesystem is EPHEMERAL. The purchases file is
+# reset on every redeploy/restart here. For durable "note on the server"
+# storage, deploy on a Droplet with a mounted Volume instead (see README) — it's
+# also cheaper (~$4-6/mo) than App Platform + a managed database.
+#
+# Create with: doctl apps create --spec .do/app.yaml
 name: mehrin
 region: ams # pick a region where Binance is reachable (avoid US)
 services:
@@ -23,14 +29,9 @@ services:
       - key: NODE_ENV
         scope: RUN_AND_BUILD_TIME
         value: production
-      - key: DATABASE_URL
+      - key: DATA_FILE
         scope: RUN_TIME
-        value: ${db.DATABASE_URL}
+        value: /tmp/mehrin/purchases.json # ephemeral here; use a Droplet volume for durability
       - key: PRICE_SYMBOL
         scope: RUN_TIME
         value: BTCUSDT
-databases:
-  - name: db
-    engine: PG
-    version: "16"
-    production: false # dev database; switch to true for a managed cluster

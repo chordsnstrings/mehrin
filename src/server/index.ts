@@ -1,6 +1,6 @@
 import path from 'path';
 import express from 'express';
-import { migrate, hasDatabase, pool } from './db';
+import { initStore, DATA_PATH } from './store';
 import { priceService, SYMBOL } from './price';
 import { transactionsRouter } from './routes/transactions';
 import type { PriceTick } from '../shared/types';
@@ -13,7 +13,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 // --- Health (used by DigitalOcean's health checks) ---
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, db: hasDatabase, symbol: SYMBOL, price: priceService.current?.price ?? null });
+  res.json({ ok: true, storage: DATA_PATH, symbol: SYMBOL, price: priceService.current?.price ?? null });
 });
 
 // --- Latest price (polling fallback for the SSE stream) ---
@@ -58,16 +58,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 const PORT = Number(process.env.PORT) || 8080;
 
 async function main(): Promise<void> {
-  if (hasDatabase) {
-    try {
-      await migrate();
-      console.log('[db] schema ready');
-    } catch (err) {
-      console.error('[db] migration failed — transaction endpoints will be unavailable:', (err as Error).message);
-    }
-  } else {
-    console.warn('[db] DATABASE_URL not set — running without persistence.');
-  }
+  await initStore();
+  console.log(`[store] using ${DATA_PATH}`);
 
   priceService.start();
 
@@ -76,7 +68,7 @@ async function main(): Promise<void> {
 
 function shutdown(): void {
   console.log('Shutting down…');
-  pool.end().finally(() => process.exit(0));
+  process.exit(0);
 }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
