@@ -31,6 +31,14 @@ client — one deployable, one URL, no database.
 
 ## Features
 
+- **USDT available** — manually add funding entries; each entry increases the total
+  USDT added. Recorded BTC purchases deduct their **USDT deployed** amount
+  (`usdtReceived` in existing records). The dashboard shows total added, total
+  deployed, and the remaining amount available, separately from the live BTC value.
+- **Remaining balance preview** — see the USDT left before saving a purchase or
+  funding entry. Deleting a purchase releases its USDT; deleting a funding entry
+  removes that amount from funding. A negative balance stays visible when recorded
+  deployments exceed funding, so missing entries can be reconciled.
 - **Add purchases** — enter AED submitted, USDT received, the BTC bought, and the
   buy price (a `calc` button can estimate BTC from USDT ÷ price; a `live` button
   fills the current price).
@@ -51,6 +59,19 @@ client — one deployable, one URL, no database.
   JSON backup) and **Import** (restore from a file). Deletion is confirmation-gated.
 
 ## The math
+
+Use **Add USDT** to record an opening funding entry and later top-ups. The opening
+entry should include USDT already spent on existing purchases, not just today's
+unspent balance. Entries are additive, not replacement balance snapshots.
+
+```
+Total USDT added     = sum of manual funding entries
+USDT deployed       = sum of purchases' recorded USDT costs (usdtReceived)
+Total USDT available = Total USDT added - USDT deployed
+```
+
+For example, add 10,000 USDT and record a purchase deploying 3,000 USDT: 7,000
+USDT remains available. BTC price movements affect the BTC value and P/L only.
 
 You enter the real Binance numbers per purchase: `aedSubmitted`, `usdtReceived`,
 `btcAmount`, and `buyPrice`. From those:
@@ -93,6 +114,21 @@ Dockerfile     container image (mounts /data volume for the JSON store)
 | `POST` | `/api/transactions` | Add a purchase |
 | `DELETE` | `/api/transactions/:id` | Delete one |
 | `DELETE` | `/api/transactions` | Clear all |
+| `GET` | `/api/funding` | List manual USDT entries |
+| `POST` | `/api/funding` | Add a positive numeric `amount` of USDT |
+| `DELETE` | `/api/funding/:id` | Delete one USDT entry |
+| `GET` | `/api/wallet` | Read purchases and funding together |
+| `POST` | `/api/wallet/restore` | Merge a validated backup without duplicating entry IDs |
+
+**Backup compatibility:** The same `DATA_FILE` now stores a version 2 object with
+`purchases` and `funding` arrays. Existing purchase-only arrays are accepted and
+upgraded on the next write, without inventing funding entries. Export, Import,
+and the browser backup include both ledgers. Old exported purchase arrays remain
+importable. Restores preserve IDs and dates, are atomic, and reject conflicting
+records. Clearing purchases leaves manual USDT funding intact.
+
+Run `npm test` for the balance, migration, backup, and API checks, and
+`npm run typecheck` to check both server and client TypeScript.
 
 ## Run locally
 

@@ -3,11 +3,13 @@ import express from 'express';
 import { initStore, DATA_PATH } from './store';
 import { priceService, SYMBOL } from './price';
 import { transactionsRouter } from './routes/transactions';
+import { fundingRouter } from './routes/funding';
+import { walletRouter } from './routes/wallet';
 import type { PriceTick } from '../shared/types';
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '64kb' }));
+app.use(express.json({ limit: '5mb' }));
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -44,6 +46,8 @@ app.get('/api/stream', (req, res) => {
 });
 
 app.use('/api/transactions', transactionsRouter);
+app.use('/api/funding', fundingRouter);
+app.use('/api/wallet', walletRouter);
 
 // --- Static client + SPA fallback ---
 app.use(express.static(PUBLIC_DIR, { maxAge: '1h', index: false }));

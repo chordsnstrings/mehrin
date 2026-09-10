@@ -15,6 +15,7 @@
     "build": "npm run clean && npm run build:server && npm run build:client && npm run copy:assets",
     "start": "node dist/server/index.js",
     "typecheck": "tsc --noEmit",
+    "test": "npm run build:server && node --test tests/*.test.cjs",
     "dev:server": "tsx watch src/server/index.ts",
     "dev:client": "node scripts/build-client.mjs --watch",
     "dev": "npm run build:client && npm run copy:assets && tsx watch src/server/index.ts"

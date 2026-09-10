@@ -185,6 +185,25 @@ main {
 .hero-foot { margin-top: 14px; }
 
 /* ---- Transactions ---- */
+.funding-card .card-title-row { gap: 12px; flex-wrap: wrap; }
+.funding-add { color: var(--gold-2); font-size: 14px; padding: 10px 14px; }
+.funding-card .stat { font-size: 14px; }
+.cash-balance { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.cash-balance strong { font-size: clamp(32px, 8vw, 44px); line-height: 1.15; overflow-wrap: anywhere; min-width: 0; }
+.cash-balance > span { color: var(--gold-2); font-size: 16px; }
+.funding-hint { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 8px 0 16px; }
+.funding-card[data-state="negative"] .cash-balance strong,
+.funding-card[data-state="negative"] .funding-hint { color: var(--red); }
+.funding-history { border-top: 1px solid var(--stroke); margin-top: 18px; padding-top: 14px; }
+.funding-history summary { color: var(--muted); font-size: 14px; cursor: pointer; padding: 4px 0; }
+.funding-history .tx-list { margin-top: 12px; }
+.funding-item { grid-template-columns: minmax(0, 1fr) auto; }
+.funding-item .tx-sub { font-size: 13px; }
+.funding-item .tx-del { grid-column: 2; grid-row: 1; min-width: 36px; min-height: 36px; }
+.preview-remaining { grid-column: 1 / -1; }
+.preview-remaining[data-state="negative"] strong { color: var(--red); }
+.funding-card button:focus-visible, .funding-history summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
 .card-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .tx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .tx-item {
