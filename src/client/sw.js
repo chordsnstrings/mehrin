@@ -1,12 +1,13 @@
 /* Mehrin service worker — offline app shell.
  * API and SSE traffic always go to the network (never cached). */
 
-const CACHE = 'mehrin-v3';
+// Build-time values keep the HTML, client, styles, and offline shell together.
+const CACHE = 'mehrin-__RELEASE__';
 const SHELL = [
   '/',
   '/index.html',
-  '/styles.css',
-  '/main.js',
+  '__STYLES_URL__',
+  '__CLIENT_URL__',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -15,7 +16,7 @@ const SHELL = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) => cache.addAll(SHELL.map((url) => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -23,7 +24,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('mehrin-') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -40,7 +41,22 @@ self.addEventListener('fetch', (event) => {
   // Navigations: network-first, fall back to cached app shell when offline.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
+      fetch(request, { cache: 'no-cache' }).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Old pages may still ask for unversioned files. Always revalidate these
+  // instead of serving a cached bundle that lacks newly added button handlers.
+  if (['/main.js', '/styles.css', '/sw.js'].includes(url.pathname)) {
+    event.respondWith(
+      fetch(request, { cache: 'no-cache' }).then(async (response) => {
+        if (response.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put(request, response.clone());
+        }
+        return response;
+      }).catch(() => caches.match(request))
     );
     return;
   }

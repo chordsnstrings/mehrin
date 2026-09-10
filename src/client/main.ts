@@ -116,7 +116,7 @@ async function loadWallet(): Promise<void> {
 
 // ---- Rendering ----
 function render(): void {
-  el.addFunding.disabled = !walletLoaded;
+  // Opening the entry form does not need to wait for the wallet request.
   el.submitBtn.disabled = !walletLoaded || savingPurchase;
   el.fundingSubmit.disabled = !walletLoaded || savingFunding;
   const t = aggregate(transactions);
@@ -640,7 +640,8 @@ window.addEventListener('appinstalled', () => {
 // ---- Service worker ----
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('SW failed', e));
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+      .catch((e) => console.warn('SW failed', e));
   });
 }
 

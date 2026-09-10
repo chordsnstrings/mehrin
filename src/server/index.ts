@@ -50,7 +50,16 @@ app.use('/api/funding', fundingRouter);
 app.use('/api/wallet', walletRouter);
 
 // --- Static client + SPA fallback ---
-app.use(express.static(PUBLIC_DIR, { maxAge: '1h', index: false }));
+app.use(express.static(PUBLIC_DIR, {
+  maxAge: '1h', index: false,
+  setHeaders(res, filePath) {
+    // Pages and stable asset URLs must revalidate across a deployment. Only
+    // content-addressed JS/CSS can safely be kept indefinitely by the browser.
+    res.setHeader('Cache-Control', /\.[a-f0-9]{16}\.(js|css)$/.test(filePath)
+      ? 'public, max-age=31536000, immutable'
+      : 'no-cache');
+  },
+}));
 app.get('*', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
 // --- Central error handler ---
