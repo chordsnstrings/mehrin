@@ -1,4 +1,4 @@
-import type { PurchaseInput } from './types';
+import type { FundingInput, PurchaseInput } from './types';
 
 /** The BTC held from a purchase (entered directly off Binance). */
 export function btcOf(p: PurchaseInput): number {
@@ -8,6 +8,20 @@ export function btcOf(p: PurchaseInput): number {
 /** The cost basis of a purchase, in USDT (what was put in as USDT). */
 export function costUsdt(p: PurchaseInput): number {
   return p.usdtReceived;
+}
+
+/** Cash available is based on recorded USDT costs, never the live BTC value. */
+export function fundingTotals(funding: FundingInput[], purchases: PurchaseInput[]) {
+  const round = (value: number) => Math.round(value * 1e8) / 1e8;
+  const added = round(funding.reduce((sum, entry) => sum + entry.amount, 0));
+  const deployed = round(purchases.reduce((sum, purchase) => sum + costUsdt(purchase), 0));
+  return { added, deployed, available: round(added - deployed) };
+}
+
+export function isValidFunding(input: unknown): input is FundingInput {
+  if (input == null || typeof input !== 'object') return false;
+  const amount = (input as Partial<FundingInput>).amount;
+  return typeof amount === 'number' && Number.isFinite(amount) && amount > 0;
 }
 
 export interface Totals {
@@ -39,7 +53,9 @@ export function blendedRate(t: Totals): number | null {
 }
 
 /** Validate raw input before persisting. */
-export function isValidInput(p: Partial<PurchaseInput>): p is PurchaseInput {
+export function isValidInput(value: unknown): value is PurchaseInput {
+  if (value == null || typeof value !== 'object') return false;
+  const p = value as Partial<PurchaseInput>;
   return (
     Number.isFinite(p.aedSubmitted) && (p.aedSubmitted as number) > 0 &&
     Number.isFinite(p.usdtReceived) && (p.usdtReceived as number) > 0 &&

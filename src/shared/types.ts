@@ -16,6 +16,23 @@ export interface Purchase extends PurchaseInput {
   createdAt: string;
 }
 
+/** A manual USDT funding entry, before any BTC deployment is deducted. */
+export interface FundingInput {
+  amount: number;
+}
+
+export interface Funding extends FundingInput {
+  id: string;
+  createdAt: string;
+}
+
+/** Version 1 backups were plain arrays of purchases. */
+export interface WalletData {
+  version: 2;
+  purchases: Purchase[];
+  funding: Funding[];
+}
+
 export interface PriceTick {
   /** Latest BTC/USDT price, or null before the first tick. */
   price: number | null;

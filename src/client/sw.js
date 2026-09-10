@@ -1,7 +1,7 @@
 /* Mehrin service worker — offline app shell.
  * API and SSE traffic always go to the network (never cached). */
 
-const CACHE = 'mehrin-v2';
+const CACHE = 'mehrin-v3';
 const SHELL = [
   '/',
   '/index.html',

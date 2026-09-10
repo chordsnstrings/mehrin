@@ -39,10 +39,28 @@
   </header>
 
   <main>
+    <!-- USDT cash available to deploy -->
+    <section class="card glass funding-card" id="fundingCard" aria-labelledby="fundingTitle">
+      <div class="card-title-row">
+        <h2 class="card-title" id="fundingTitle">Total USDT available</h2>
+        <button type="button" class="ghost-btn funding-add" id="addFunding">+ Add USDT</button>
+      </div>
+      <div class="cash-balance"><strong id="usdtAvailable">0.00</strong><span>USDT</span></div>
+      <p class="funding-hint" id="fundingHint">Add your USDT funding to start tracking the amount available.</p>
+      <div class="stat-row">
+        <div class="stat"><span class="muted">Total USDT added</span><strong id="usdtAdded">0.00 USDT</strong></div>
+        <div class="stat"><span class="muted">USDT deployed</span><strong id="usdtDeployed">0.00 USDT</strong></div>
+      </div>
+      <details class="funding-history" id="fundingHistory" hidden>
+        <summary id="fundingSummary">USDT entries</summary>
+        <ul class="tx-list" id="fundingList"></ul>
+      </details>
+    </section>
+
     <!-- WALLET — hero -->
     <section class="card glass hero">
       <div class="hero-head">
-        <h2 class="card-title">Wallet balance</h2>
+        <h2 class="card-title">BTC holdings</h2>
         <div class="market" title="Live BTC price (used to value your wallet)">
           <span class="market-price" id="livePrice">—</span>
           <span class="chg" id="priceChange"></span>
@@ -51,7 +69,7 @@
 
       <div class="balance-grid">
         <div class="balance-main">
-          <div class="muted small">Total value</div>
+          <div class="muted small">BTC value</div>
           <div class="big" id="walletUsdt">$0.00</div>
           <div class="muted small" id="walletAed">AED —</div>
         </div>
@@ -68,7 +86,7 @@
           <strong id="btcHeld">0.00000000</strong>
         </div>
         <div class="stat">
-          <span class="muted small">USDT received</span>
+          <span class="muted small">USDT deployed</span>
           <strong id="usdtReceivedTotal">$0.00</strong>
         </div>
         <div class="stat">
@@ -132,12 +150,12 @@
         </label>
 
         <label class="field">
-          <span>USDT received</span>
+          <span>USDT deployed</span>
           <div class="input-wrap">
             <span class="prefix">USDT</span>
             <input type="number" id="usdtReceived" inputmode="decimal" step="any" min="0" placeholder="272.10" required />
           </div>
-          <small class="hint">Exactly what the P2P trade credited to your wallet.</small>
+          <small class="hint">USDT used for this purchase. Deducted from your available balance.</small>
         </label>
 
         <label class="field">
@@ -161,9 +179,35 @@
         <div class="preview" id="preview" hidden>
           <div><span class="muted small">Effective rate</span><strong id="pvRate">—</strong></div>
           <div><span class="muted small">BTC cost</span><strong id="pvCost">—</strong></div>
+          <div class="preview-remaining"><span class="muted small">USDT available after purchase</span><strong id="pvAvailable">—</strong></div>
         </div>
 
         <button type="submit" class="primary-btn" id="submitBtn">Add to wallet</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add manual USDT funding -->
+  <div class="modal" id="fundingModal" hidden>
+    <div class="modal-backdrop" data-close-funding></div>
+    <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="fundingModalTitle" aria-describedby="fundingHelp">
+      <div class="modal-head">
+        <h2 class="card-title" id="fundingModalTitle">Add USDT</h2>
+        <button type="button" class="icon-btn" aria-label="Close" data-close-funding>×</button>
+      </div>
+      <form id="fundingForm" class="form" autocomplete="off">
+        <label class="field">
+          <span>USDT to add</span>
+          <div class="input-wrap">
+            <span class="prefix">USDT</span>
+            <input type="number" id="fundingAmount" inputmode="decimal" step="any" min="0" placeholder="10000" aria-describedby="fundingHelp" required />
+          </div>
+        </label>
+        <p class="funding-hint" id="fundingHelp">Each entry adds to your total funding. For your first entry, include USDT already used in recorded purchases.</p>
+        <div class="preview">
+          <div class="preview-remaining"><span class="muted small">USDT available after entry</span><strong id="fundingPreview">—</strong></div>
+        </div>
+        <button type="submit" class="primary-btn" id="fundingSubmit">Add USDT</button>
       </form>
     </div>
   </div>
