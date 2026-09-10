@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0e11" />
+  <meta name="theme-color" content="#f4f6f7" />
   <meta name="description" content="Track your AED → USDT → BTC purchases with live Binance prices and full wallet balance." />
   <title>Mehrin · BTC Wallet Tracker</title>
 
@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Mehrin" />
 
   <link rel="stylesheet" href="/styles.css" />
@@ -23,10 +23,10 @@
 
   <header class="app-bar">
     <div class="brand">
-      <span class="brand-mark">₿</span>
+      <span class="brand-mark" aria-hidden="true">m</span>
       <div>
-        <h1>Mehrin</h1>
-        <p class="tagline">Wallet Tracker</p>
+        <h1>mehrin<span class="brand-period">.</span></h1>
+        <p class="tagline">Personal wallet</p>
       </div>
     </div>
     <div class="bar-right">
@@ -39,11 +39,19 @@
   </header>
 
   <main>
+    <div class="overview-heading">
+      <h2>Wallet overview<span aria-hidden="true">.</span></h2>
+      <div class="market" title="Live Bitcoin price in USDT">
+        <span class="market-pair">BTC / USDT</span>
+        <span class="market-price" id="livePrice">—</span>
+        <span class="chg" id="priceChange"></span>
+      </div>
+    </div>
     <!-- USDT cash available to deploy -->
     <section class="card glass funding-card" id="fundingCard" aria-labelledby="fundingTitle">
       <div class="card-title-row">
         <h2 class="card-title" id="fundingTitle">Total USDT available</h2>
-        <button type="button" class="ghost-btn funding-add" id="addFunding">+ Add USDT</button>
+        <button type="button" class="ghost-btn funding-add" id="addFunding"><span class="button-plus" aria-hidden="true">+</span> Add USDT</button>
       </div>
       <div class="cash-balance"><strong id="usdtAvailable">0.00</strong><span>USDT</span></div>
       <p class="funding-hint" id="fundingHint">Add your USDT funding to start tracking the amount available.</p>
@@ -60,11 +68,8 @@
     <!-- WALLET — hero -->
     <section class="card glass hero">
       <div class="hero-head">
-        <h2 class="card-title">BTC holdings</h2>
-        <div class="market" title="Live BTC price (used to value your wallet)">
-          <span class="market-price" id="livePrice">—</span>
-          <span class="chg" id="priceChange"></span>
-        </div>
+        <h2 class="card-title asset-label"><span class="asset-mark" aria-hidden="true">₿</span> BTC holdings</h2>
+        <span class="asset-symbol">Bitcoin</span>
       </div>
 
       <div class="balance-grid">
@@ -115,7 +120,8 @@
       </div>
       <ul class="tx-list" id="txList"></ul>
       <p class="empty" id="txEmpty">
-        No purchases yet.
+        <span class="empty-mark" aria-hidden="true">+</span>
+        <span>No purchases yet.</span>
         <button type="button" class="link-btn" id="emptyAdd">Add your first purchase</button>
       </p>
     </section>
@@ -128,7 +134,8 @@
 
   <!-- Add purchase — floating action button -->
   <button type="button" class="fab" id="addFab" aria-label="Add a purchase">
-    <span aria-hidden="true">+</span>
+    <span class="fab-icon" aria-hidden="true">+</span>
+    <span>Add purchase</span>
   </button>
 
   <!-- Add purchase — modal -->

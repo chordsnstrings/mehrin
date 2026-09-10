@@ -47,6 +47,56 @@ const el = {
   importFile: $<HTMLInputElement>('importFile'), toast: $('toast'),
 };
 
+// ---- Motion: enhance feedback without delaying values or user actions ----
+const prefersReducedMotion = () =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const valueAnimations = new WeakMap<HTMLElement, Animation>();
+
+function setValue(node: HTMLElement, value: string): void {
+  const previous = node.textContent;
+  if (previous === value) return;
+  node.textContent = value;
+  if (!walletLoaded || !previous || previous.includes('—') || prefersReducedMotion() || typeof node.animate !== 'function') return;
+  valueAnimations.get(node)?.cancel();
+  valueAnimations.set(node, node.animate([
+    { opacity: .45, transform: 'translateY(3px)' },
+    { opacity: 1, transform: 'translateY(0)' },
+  ], { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' }));
+}
+
+const dialogAnimations = new WeakMap<HTMLElement, Animation>();
+const dialogReturnFocus = new WeakMap<HTMLElement, HTMLElement | null>();
+
+function showDialog(modal: HTMLElement, focus: HTMLElement): void {
+  dialogAnimations.get(modal)?.cancel();
+  dialogAnimations.delete(modal);
+  delete modal.dataset.closing;
+  dialogReturnFocus.set(modal, document.activeElement as HTMLElement | null);
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  focus.focus();
+}
+
+function hideDialog(modal: HTMLElement, returnFocus = dialogReturnFocus.get(modal)): void {
+  if (modal.dataset.closing || modal.hidden) return;
+  const finish = () => {
+    modal.hidden = true;
+    delete modal.dataset.closing;
+    dialogAnimations.delete(modal);
+    if ([el.addModal, el.fundingModal, el.confirmModal].every((dialog) => dialog.hidden)) {
+      document.body.style.overflow = '';
+      returnFocus?.focus();
+    }
+  };
+  if (prefersReducedMotion() || typeof modal.animate !== 'function') { finish(); return; }
+  modal.dataset.closing = 'true';
+  const animation = modal.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, easing: 'ease-out' });
+  dialogAnimations.set(modal, animation);
+  animation.finished.then(() => {
+    if (dialogAnimations.get(modal) === animation) finish();
+  }).catch(() => { /* Reopening cancels the close without hiding the new dialog. */ });
+}
+
 // ---- Formatting ----
 const fmt = (n: number | null, dp: number): string =>
   n == null || !isFinite(n)
@@ -127,24 +177,24 @@ function render(): void {
   const valueUsdt = price != null ? t.btc * price : null;
   const valueAed = valueUsdt != null && rate != null ? valueUsdt * rate : null;
 
-  el.btcHeld.textContent = btcFmt(t.btc);
-  el.usdtReceivedTotal.textContent = usd(t.usdtReceived);
-  el.aedSubmittedTotal.textContent = aedFmt(t.aedSubmitted);
-  el.avgPrice.textContent = t.avgPrice != null ? usd(t.avgPrice) : '—';
+  setValue(el.btcHeld, btcFmt(t.btc));
+  setValue(el.usdtReceivedTotal, usd(t.usdtReceived));
+  setValue(el.aedSubmittedTotal, aedFmt(t.aedSubmitted));
+  setValue(el.avgPrice, t.avgPrice != null ? usd(t.avgPrice) : '—');
 
-  el.walletUsdt.textContent = valueUsdt != null ? usd(valueUsdt) : '—';
-  el.walletAed.textContent = valueAed != null ? '≈ ' + aedFmt(valueAed) : 'AED —';
+  setValue(el.walletUsdt, valueUsdt != null ? usd(valueUsdt) : '—');
+  setValue(el.walletAed, valueAed != null ? '≈ ' + aedFmt(valueAed) : 'AED —');
 
   // P/L vs the USDT actually put in.
   if (valueUsdt != null && t.usdtReceived > 0) {
     const pl = valueUsdt - t.usdtReceived;
     const plPct = (pl / t.usdtReceived) * 100;
-    el.plValue.textContent = signed(pl, usd);
-    el.plPct.textContent = signed(plPct, (x) => fmt(x, 2) + '%');
+    setValue(el.plValue, signed(pl, usd));
+    setValue(el.plPct, signed(plPct, (x) => fmt(x, 2) + '%'));
     el.plBox.dataset.state = pl > 0 ? 'up' : pl < 0 ? 'down' : 'flat';
   } else {
-    el.plValue.textContent = usd(0);
-    el.plPct.textContent = '0.00%';
+    setValue(el.plValue, usd(0));
+    setValue(el.plPct, '0.00%');
     el.plBox.dataset.state = 'flat';
   }
 
@@ -174,7 +224,7 @@ function renderTxList(price: number | null): void {
       const li = document.createElement('li');
       li.className = 'tx-item';
       li.dataset.tx = tx.id;
-      li.style.setProperty('--i', String(i));
+      li.style.setProperty('--i', String(Math.min(i, 7)));
       li.innerHTML = `
         <div class="tx-main">
           <span class="tx-btc">${btcFmt(btcOf(tx))} BTC</span>
@@ -215,9 +265,9 @@ let renderedFundingKey = '';
 
 function renderFunding(): void {
   const cash = fundingTotals(funding, transactions);
-  el.usdtAvailable.textContent = walletLoaded ? fmt(cash.available, 2) : '—';
-  el.usdtAdded.textContent = walletLoaded ? usdtFmt(cash.added) : '—';
-  el.usdtDeployed.textContent = walletLoaded ? usdtFmt(cash.deployed) : '—';
+  setValue(el.usdtAvailable, walletLoaded ? fmt(cash.available, 2) : '—');
+  setValue(el.usdtAdded, walletLoaded ? usdtFmt(cash.added) : '—');
+  setValue(el.usdtDeployed, walletLoaded ? usdtFmt(cash.deployed) : '—');
   el.fundingCard.dataset.state = cash.available < 0 ? 'negative' : 'normal';
   el.fundingHint.textContent = !walletLoaded
     ? 'Loading your USDT balance…'
@@ -233,9 +283,10 @@ function renderFunding(): void {
   if (key === renderedFundingKey) return;
   renderedFundingKey = key;
   el.fundingList.replaceChildren();
-  for (const entry of ordered) {
+  for (const [index, entry] of ordered.entries()) {
     const li = document.createElement('li');
     li.className = 'tx-item funding-item';
+    li.style.setProperty('--i', String(Math.min(index, 5)));
     const main = document.createElement('div');
     main.className = 'tx-main';
     const amount = document.createElement('span');
@@ -260,22 +311,18 @@ function updateFundingPreview(): void {
   const amount = Number(el.fundingAmount.value);
   const entries = isValidFunding({ amount }) ? [...funding, { amount }] : funding;
   const available = fundingTotals(entries, transactions).available;
-  el.fundingPreview.textContent = walletLoaded ? usdtFmt(available) : '—';
+  setValue(el.fundingPreview, walletLoaded ? usdtFmt(available) : '—');
   el.fundingPreview.parentElement!.dataset.state = available < 0 ? 'negative' : 'normal';
 }
 
 function openFundingModal(): void {
-  el.fundingModal.hidden = false;
-  document.body.style.overflow = 'hidden';
   updateFundingPreview();
-  el.fundingAmount.focus();
+  showDialog(el.fundingModal, el.fundingAmount);
 }
 
 function closeFundingModal(): void {
   if (savingFunding) return;
-  el.fundingModal.hidden = true;
-  document.body.style.overflow = '';
-  el.addFunding.focus();
+  hideDialog(el.fundingModal, el.addFunding);
 }
 
 async function addFunding(e: Event): Promise<void> {
@@ -319,7 +366,7 @@ function applyTick(tick: PriceTick): void {
   livePrice = tick.price;
   if (tick.changePercent != null) change24h = tick.changePercent;
 
-  el.livePrice.textContent = usd(livePrice);
+  setValue(el.livePrice, usd(livePrice));
   if (prevPrice != null && livePrice !== prevPrice) {
     const cls = livePrice > prevPrice ? 'flash-up' : 'flash-down';
     el.livePrice.classList.remove('flash-up', 'flash-down');
@@ -382,10 +429,10 @@ function updatePreview(): void {
   const valid = isValidInput(f);
   el.preview.hidden = !valid;
   if (!valid) return;
-  el.pvRate.textContent = fmt(f.aedSubmitted / f.usdtReceived, 4) + ' AED/USDT';
-  el.pvCost.textContent = usdtFmt(f.btcAmount * f.buyPrice);
+  setValue(el.pvRate, fmt(f.aedSubmitted / f.usdtReceived, 4) + ' AED/USDT');
+  setValue(el.pvCost, usdtFmt(f.btcAmount * f.buyPrice));
   const available = fundingTotals(funding, [...transactions, f]).available;
-  el.pvAvailable.textContent = usdtFmt(available);
+  setValue(el.pvAvailable, usdtFmt(available));
   el.pvAvailable.parentElement!.dataset.state = available < 0 ? 'negative' : 'normal';
 }
 
@@ -427,8 +474,7 @@ function askDelete(id: string): void {
   $('confirmTitle').textContent = 'Delete this purchase?';
   el.confirmText.textContent =
     `${btcFmt(btcOf(tx))} BTC @ ${usd(tx.buyPrice)} · ${aedFmt(tx.aedSubmitted)}. This returns ${usdtFmt(costUsdt(tx))} to the available balance. This can't be undone.`;
-  el.confirmModal.hidden = false;
-  document.body.style.overflow = 'hidden';
+  showDialog(el.confirmModal, $('confirmCancel'));
 }
 
 function askDeleteFunding(id: string): void {
@@ -437,9 +483,7 @@ function askDeleteFunding(id: string): void {
   pendingDelete = { kind: 'funding', id };
   $('confirmTitle').textContent = 'Delete this USDT entry?';
   el.confirmText.textContent = `This removes ${usdtFmt(entry.amount)} from your total funding and available balance. Purchases stay recorded. This can't be undone.`;
-  el.confirmModal.hidden = false;
-  document.body.style.overflow = 'hidden';
-  $('confirmCancel').focus();
+  showDialog(el.confirmModal, $('confirmCancel'));
 }
 
 async function performDeleteFunding(id: string): Promise<void> {
@@ -452,9 +496,8 @@ async function performDeleteFunding(id: string): Promise<void> {
 }
 
 function closeConfirm(): void {
-  el.confirmModal.hidden = true;
   pendingDelete = null;
-  document.body.style.overflow = '';
+  hideDialog(el.confirmModal);
 }
 
 async function performDelete(id: string): Promise<void> {
@@ -541,14 +584,11 @@ async function importData(file: File): Promise<void> {
 
 // ---- Add-purchase modal ----
 function openModal(): void {
-  el.addModal.hidden = false;
-  document.body.style.overflow = 'hidden';
   updatePreview();
-  setTimeout(() => el.aedSubmitted.focus(), 50);
+  showDialog(el.addModal, el.aedSubmitted);
 }
 function closeModal(): void {
-  el.addModal.hidden = true;
-  document.body.style.overflow = '';
+  hideDialog(el.addModal, el.addFab);
 }
 el.addFab.addEventListener('click', openModal);
 el.emptyAdd.addEventListener('click', openModal);
