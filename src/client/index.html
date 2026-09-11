@@ -47,72 +47,57 @@
   <main>
     <div class="overview-heading">
       <h2>Wallet overview<span aria-hidden="true">.</span></h2>
-      <button type="button" class="purchase-add" id="addFab" aria-label="Add a purchase">
-        <span class="button-plus" aria-hidden="true">+</span>
-        <span>Add purchase</span>
-      </button>
+      <div class="overview-actions">
+        <button type="button" class="ghost-btn funding-add" id="addFunding"><span class="button-plus" aria-hidden="true">+</span> Add USDT</button>
+        <button type="button" class="purchase-add" id="addFab" aria-label="Add a purchase">
+          <span class="button-plus" aria-hidden="true">+</span>
+          <span>Add purchase</span>
+        </button>
+      </div>
     </div>
+
     <div class="portfolio-board glass">
-      <!-- USDT cash available to deploy -->
-      <section class="card funding-card" id="fundingCard" aria-labelledby="fundingTitle">
-        <div class="card-title-row">
+      <div class="wallet-topline">
+        <section class="funding-card" id="fundingCard" aria-labelledby="fundingTitle">
           <h2 class="card-title" id="fundingTitle">Total USDT available</h2>
-          <button type="button" class="ghost-btn funding-add" id="addFunding"><span class="button-plus" aria-hidden="true">+</span> Add USDT</button>
-        </div>
-        <div class="cash-balance"><strong id="usdtAvailable">0.00</strong><span>USDT</span></div>
-        <p class="funding-hint" id="fundingHint">Add your USDT funding to start tracking the amount available.</p>
-        <div class="stat-row">
+          <div class="cash-balance"><strong id="usdtAvailable">0.00</strong><span>USDT</span></div>
+          <p class="funding-hint" id="fundingHint">Add your USDT funding to start tracking the amount available.</p>
+        </section>
+
+        <section class="hero">
+          <h2 class="card-title asset-label"><span class="asset-mark" aria-hidden="true">₿</span> BTC holdings</h2>
+          <div class="big" id="walletUsdt">$0.00</div>
+          <div class="value-context"><span class="muted small">BTC value</span><span class="asset-symbol">Bitcoin</span></div>
+          <div class="muted small" id="walletAed">AED —</div>
+        </section>
+
+        <section class="balance-pl" id="plBox" data-state="flat">
+          <h2 class="card-title">Profit / Loss</h2>
+          <div class="pl-value" id="plValue">$0.00</div>
+          <div class="pl-pct" id="plPct">0.00%</div>
+        </section>
+      </div>
+
+      <div class="wallet-details">
+        <div class="stat-row funding-stats">
           <div class="stat"><span class="muted">Total USDT added</span><strong id="usdtAdded">0.00 USDT</strong></div>
           <div class="stat"><span class="muted">USDT deployed</span><strong id="usdtDeployed">0.00 USDT</strong></div>
         </div>
+        <div class="stat-row holdings-stats">
+          <div class="stat"><span class="muted small">BTC held</span><strong id="btcHeld">0.00000000</strong></div>
+          <div class="stat"><span class="muted small">USDT deployed</span><strong id="usdtReceivedTotal">$0.00</strong></div>
+          <div class="stat"><span class="muted small">Avg. buy price</span><strong id="avgPrice">—</strong></div>
+          <div class="stat"><span class="muted small">AED submitted</span><strong id="aedSubmittedTotal">AED 0.00</strong></div>
+        </div>
+      </div>
+
+      <div class="wallet-footer">
         <details class="funding-history" id="fundingHistory" hidden>
           <summary id="fundingSummary">USDT entries</summary>
           <ul class="tx-list" id="fundingList"></ul>
         </details>
-      </section>
-
-      <!-- WALLET — hero -->
-      <section class="card hero">
-        <div class="hero-head">
-          <h2 class="card-title asset-label"><span class="asset-mark" aria-hidden="true">₿</span> BTC holdings</h2>
-          <span class="asset-symbol">Bitcoin</span>
-        </div>
-
-        <div class="balance-grid">
-          <div class="balance-main">
-            <div class="muted small">BTC value</div>
-            <div class="big" id="walletUsdt">$0.00</div>
-            <div class="muted small" id="walletAed">AED —</div>
-          </div>
-          <div class="balance-pl" id="plBox" data-state="flat">
-            <div class="muted small">Profit / Loss</div>
-            <div class="pl-value" id="plValue">$0.00</div>
-            <div class="pl-pct" id="plPct">0.00%</div>
-          </div>
-        </div>
-
-        <div class="stat-row">
-          <div class="stat">
-            <span class="muted small">BTC held</span>
-            <strong id="btcHeld">0.00000000</strong>
-          </div>
-          <div class="stat">
-            <span class="muted small">USDT deployed</span>
-            <strong id="usdtReceivedTotal">$0.00</strong>
-          </div>
-          <div class="stat">
-            <span class="muted small">Avg. buy price</span>
-            <strong id="avgPrice">—</strong>
-          </div>
-          <div class="stat">
-            <span class="muted small">AED submitted</span>
-            <strong id="aedSubmittedTotal">AED 0.00</strong>
-          </div>
-        </div>
-
         <div class="hero-foot muted small" id="priceUpdated">Waiting for first tick…</div>
-      </section>
-
+      </div>
     </div>
 
     <!-- PURCHASES -->
