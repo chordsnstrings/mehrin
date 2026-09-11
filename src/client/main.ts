@@ -47,22 +47,14 @@ const el = {
   importFile: $<HTMLInputElement>('importFile'), toast: $('toast'),
 };
 
-// ---- Motion: enhance feedback without delaying values or user actions ----
+// ---- Keep financial values legible and stationary on every live tick ----
+function setValue(node: HTMLElement, value: string): void {
+  if (node.textContent !== value) node.textContent = value;
+}
+
+// ---- Motion is reserved for entering and leaving an interaction ----
 const prefersReducedMotion = () =>
   typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const valueAnimations = new WeakMap<HTMLElement, Animation>();
-
-function setValue(node: HTMLElement, value: string): void {
-  const previous = node.textContent;
-  if (previous === value) return;
-  node.textContent = value;
-  if (!walletLoaded || !previous || previous.includes('—') || prefersReducedMotion() || typeof node.animate !== 'function') return;
-  valueAnimations.get(node)?.cancel();
-  valueAnimations.set(node, node.animate([
-    { opacity: .45, transform: 'translateY(3px)' },
-    { opacity: 1, transform: 'translateY(0)' },
-  ], { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' }));
-}
 
 const dialogAnimations = new WeakMap<HTMLElement, Animation>();
 const dialogReturnFocus = new WeakMap<HTMLElement, HTMLElement | null>();
@@ -90,7 +82,7 @@ function hideDialog(modal: HTMLElement, returnFocus = dialogReturnFocus.get(moda
   };
   if (prefersReducedMotion() || typeof modal.animate !== 'function') { finish(); return; }
   modal.dataset.closing = 'true';
-  const animation = modal.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 170, easing: 'ease-out' });
+  const animation = modal.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out' });
   dialogAnimations.set(modal, animation);
   animation.finished.then(() => {
     if (dialogAnimations.get(modal) === animation) finish();
@@ -215,16 +207,15 @@ function renderTxList(price: number | null): void {
   const ordered = [...transactions].reverse();
   const key = ordered.map((t) => t.id).join('|');
 
-  // Rebuild the DOM only when the set of purchases changes — so live price
-  // ticks just update the numbers in place (no flicker, no replayed animation).
+  // Rebuild only when purchases change, preserving focus and row positions
+  // while live price ticks update the numbers in place.
   if (key !== renderedKey) {
     renderedKey = key;
     el.txList.innerHTML = '';
-    ordered.forEach((tx, i) => {
+    ordered.forEach((tx) => {
       const li = document.createElement('li');
       li.className = 'tx-item';
       li.dataset.tx = tx.id;
-      li.style.setProperty('--i', String(Math.min(i, 7)));
       li.innerHTML = `
         <div class="tx-main">
           <span class="tx-btc">${btcFmt(btcOf(tx))} BTC</span>
@@ -283,10 +274,9 @@ function renderFunding(): void {
   if (key === renderedFundingKey) return;
   renderedFundingKey = key;
   el.fundingList.replaceChildren();
-  for (const [index, entry] of ordered.entries()) {
+  for (const entry of ordered) {
     const li = document.createElement('li');
     li.className = 'tx-item funding-item';
-    li.style.setProperty('--i', String(Math.min(index, 5)));
     const main = document.createElement('div');
     main.className = 'tx-main';
     const amount = document.createElement('span');
@@ -370,7 +360,6 @@ function applyTick(tick: PriceTick): void {
   if (prevPrice != null && livePrice !== prevPrice) {
     const cls = livePrice > prevPrice ? 'flash-up' : 'flash-down';
     el.livePrice.classList.remove('flash-up', 'flash-down');
-    void el.livePrice.offsetWidth; // restart transition
     el.livePrice.classList.add(cls);
   }
   if (change24h != null) {

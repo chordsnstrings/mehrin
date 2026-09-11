@@ -112,10 +112,16 @@
       <div class="card-title-row">
         <h2 class="card-title">Purchases</h2>
         <div class="tx-actions">
-          <button type="button" class="ghost-btn" id="exportBtn" hidden>Export</button>
-          <button type="button" class="ghost-btn" id="importBtn">Import</button>
-          <button type="button" class="ghost-btn danger" id="clearAll" hidden>Clear all</button>
-          <input type="file" id="importFile" accept="application/json,.json" hidden />
+          <div class="ledger-tools">
+            <button type="button" class="ghost-btn" id="exportBtn" hidden>Export</button>
+            <button type="button" class="ghost-btn" id="importBtn">Import</button>
+            <button type="button" class="ghost-btn danger" id="clearAll" hidden>Clear all</button>
+            <input type="file" id="importFile" accept="application/json,.json" hidden />
+          </div>
+          <button type="button" class="purchase-add" id="addFab" aria-label="Add a purchase">
+            <span class="button-plus" aria-hidden="true">+</span>
+            <span>Add purchase</span>
+          </button>
         </div>
       </div>
       <ul class="tx-list" id="txList"></ul>
@@ -131,12 +137,6 @@
       not place trades or connect to your exchange account.
     </p>
   </main>
-
-  <!-- Add purchase — floating action button -->
-  <button type="button" class="fab" id="addFab" aria-label="Add a purchase">
-    <span class="fab-icon" aria-hidden="true">+</span>
-    <span>Add purchase</span>
-  </button>
 
   <!-- Add purchase — modal -->
   <div class="modal" id="addModal" hidden>
