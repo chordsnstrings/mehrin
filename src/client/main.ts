@@ -5,6 +5,7 @@
 import { aggregate, btcOf, costUsdt, blendedRate, isValidInput, fundingTotals, isValidFunding } from '../shared/calc';
 import { parseWalletData } from '../shared/backup';
 import type { Funding, Purchase, PurchaseInput, PriceTick, WalletData } from '../shared/types';
+import { initSurfaceMotion } from './motion';
 
 // ---- State ----
 let transactions: Purchase[] = [];
@@ -52,7 +53,7 @@ function setValue(node: HTMLElement, value: string): void {
   if (node.textContent !== value) node.textContent = value;
 }
 
-// ---- Motion is reserved for entering and leaving an interaction ----
+// ---- Dialog transitions preserve focus and can be interrupted safely ----
 const prefersReducedMotion = () =>
   typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -678,6 +679,7 @@ if ('serviceWorker' in navigator) {
 render();
 loadWallet();
 connectStream();
+initSurfaceMotion();
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && livePrice == null) startPolling();
