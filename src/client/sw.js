@@ -9,6 +9,7 @@ const SHELL = [
   '__STYLES_URL__',
   '__CLIENT_URL__',
   '/manifest.webmanifest',
+  '/fonts/manrope-variable.ttf',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];

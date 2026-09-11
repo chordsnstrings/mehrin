@@ -43,4 +43,7 @@ for (const [from, to] of files) {
 // Icons directory (PNGs + SVG sources).
 await cp('src/client/icons', `${OUT}/icons`, { recursive: true });
 
+// The bundled font keeps the same typography online and offline.
+await cp('src/client/fonts', `${OUT}/fonts`, { recursive: true });
+
 console.log(`[assets] copied static files to ${OUT}`);
